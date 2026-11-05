@@ -1,0 +1,30 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}{{ s.baslik }}{% endblock %}
+{% block icerik %}
+<h1>{{ s.baslik }}</h1>
+{% include "simulasyon/_sekmeler.html" %}
+{% include "simulasyon/_mermaid.html" %}
+
+<h2>Tek hata noktası analizi</h2>
+<p class="soluk">{{ kontrol }} tek hata denendi (her cihaz, güç kaynağı ve kablo tek tek bozuldu).</p>
+{% if spof %}
+  <p><span class="rozet kotu">{{ spof|length }} merkezi tek hata noktası</span></p>
+  <table><tr><th>Çeşit</th><th>Eleman</th><th>Kopan gereksinimler</th></tr>
+  {% for x in spof %}<tr><td>{{ x.cesit }}</td><td><code>{{ x.eleman }}</code></td><td>{{ x.etki }}</td></tr>{% endfor %}
+  </table>
+{% else %}
+  <p><span class="rozet iyi">Merkezi tek hata noktası yok</span></p>
+{% endif %}
+
+{% if yerel %}
+<h2>Erişim katmanı (sadece o kat/bina etkilenir)</h2>
+<table><tr><th>Çeşit</th><th>Eleman</th><th>Kopan gereksinimler</th></tr>
+{% for x in yerel %}<tr><td>{{ x.cesit }}</td><td><code>{{ x.eleman }}</code></td><td>{{ x.etki }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+
+<h2>Gereksinimler</h2>
+<table><tr><th>Kaynak</th><th>Hedef (herhangi biri)</th><th>Açıklama</th></tr>
+{% for r in gereksinimler %}<tr><td><code>{{ r.kaynak }}</code></td><td><code>{{ r.hedefler|join:", " }}</code></td><td>{{ r.aciklama }}</td></tr>{% endfor %}
+</table>
+{% endblock %}

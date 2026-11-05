@@ -1,0 +1,18 @@
+{% extends "simulasyon/base.html" %}
+{% block icerik %}
+<h1>Senaryolar</h1>
+<p class="soluk">Her senaryo bir ağ topolojisini graf olarak modeller. Cihaz bozarak hangi gereksinimlerin koptuğunu,
+VLAN kurallarını ve log analizini deneyebilirsiniz.</p>
+<div class="izgara">
+{% for o in ozetler %}
+  <div class="kart">
+    <h2 style="margin-top:0"><a href="{% url 'senaryo' o.ad %}">{{ o.baslik }}</a></h2>
+    <p>{{ o.dugum }} düğüm, {{ o.kablo }} kablo, {{ o.gereksinim }} gereksinim</p>
+    <p>Merkezi tek hata noktası:
+      {% if o.spof %}<span class="rozet kotu">{{ o.spof }}</span>{% else %}<span class="rozet iyi">yok</span>{% endif %}
+    </p>
+    <p class="not">Erişim katmanı (yerel etki): {{ o.yerel }}</p>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

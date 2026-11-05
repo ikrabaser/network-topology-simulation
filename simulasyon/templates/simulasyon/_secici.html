@@ -1,0 +1,10 @@
+<form method="get">
+  <div class="secici">
+    {% for e in secici %}
+      <label><input type="checkbox" name="bozuk" value="{{ e.ad }}" {% if e.secili %}checked{% endif %}>
+        {{ e.etiket }} <span class="soluk">({{ e.ad }})</span></label>
+    {% endfor %}
+  </div>
+  <p><button type="submit">Uygula</button>
+     <a href="?">Temizle</a></p>
+</form>

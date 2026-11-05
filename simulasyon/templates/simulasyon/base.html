@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block baslik %}Ağ Topolojisi Simülasyonu{% endblock %}</title>
+  <style>
+    :root { --metin:#1c1f24; --soluk:#5b6470; --cizgi:#d9dde3; --zemin:#f6f7f9; --kart:#fff;
+            --vurgu:#1f6fb2; --iyi:#1d8a63; --kotu:#c0392b; --uyari:#b9770e; }
+    @media (prefers-color-scheme: dark) {
+      :root { --metin:#e6e8eb; --soluk:#9aa3ae; --cizgi:#343a42; --zemin:#15181c; --kart:#1d2127;
+              --vurgu:#6db3f2; --iyi:#4cc9a0; --kotu:#f08a7e; --uyari:#e8b04b; } }
+    * { box-sizing: border-box; }
+    body { margin:0; font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+           color:var(--metin); background:var(--zemin); }
+    header { background:var(--kart); border-bottom:1px solid var(--cizgi); padding:12px 20px;
+             display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+    header a.marka { font-weight:700; color:var(--metin); text-decoration:none; }
+    header nav a { color:var(--vurgu); text-decoration:none; margin-right:14px; }
+    main { max-width:1100px; margin:0 auto; padding:20px; }
+    h1 { font-size:1.5rem; margin:.2em 0 .6em; } h2 { font-size:1.15rem; margin:1.4em 0 .5em; }
+    a { color:var(--vurgu); }
+    .kart { background:var(--kart); border:1px solid var(--cizgi); border-radius:10px; padding:16px; }
+    .izgara { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+    .sekmeler { display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 16px; }
+    .sekmeler a { padding:6px 12px; border:1px solid var(--cizgi); border-radius:8px;
+                  text-decoration:none; background:var(--kart); }
+    .sekmeler a.aktif { background:var(--vurgu); border-color:var(--vurgu); color:#fff; }
+    table { border-collapse:collapse; width:100%; background:var(--kart); }
+    th, td { border:1px solid var(--cizgi); padding:6px 10px; text-align:left; font-size:.92rem; }
+    th { background:var(--zemin); }
+    .rozet { display:inline-block; padding:1px 9px; border-radius:99px; font-size:.82rem;
+             border:1px solid currentColor; }
+    .iyi { color:var(--iyi); } .kotu { color:var(--kotu); } .uyari { color:var(--uyari); }
+    .soluk { color:var(--soluk); }
+    .diyagram { overflow:auto; background:var(--kart); border:1px solid var(--cizgi);
+                border-radius:10px; padding:10px; }
+    .tum { color:var(--iyi); font-weight:600; } .kismi { color:var(--uyari); } .yok { color:var(--soluk); }
+    .secici { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:4px 14px; }
+    .secici label { font-size:.92rem; }
+    button, select, input[type=text], input[type=number], textarea {
+      font:inherit; padding:6px 10px; border:1px solid var(--cizgi); border-radius:8px;
+      background:var(--kart); color:var(--metin); }
+    button { background:var(--vurgu); border-color:var(--vurgu); color:#fff; cursor:pointer; }
+    textarea { width:100%; min-height:160px; font-family:ui-monospace, Consolas, monospace; font-size:.85rem; }
+    code, pre { font-family:ui-monospace, Consolas, monospace; font-size:.88rem; }
+    .not { font-size:.9rem; color:var(--soluk); }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="marka" href="{% url 'index' %}">Ağ Topolojisi Simülasyonu</a>
+    <nav><a href="{% url 'index' %}">Senaryolar</a><a href="{% url 'siem' %}">Mini SIEM</a></nav>
+  </header>
+  <main>{% block icerik %}{% endblock %}</main>
+  {% block betik %}{% endblock %}
+</body>
+</html>

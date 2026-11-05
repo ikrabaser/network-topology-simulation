@@ -1,0 +1,26 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}Mini SIEM{% endblock %}
+{% block icerik %}
+<h1>Mini SIEM</h1>
+<p class="soluk">Log satırlarını okur, olayları ilişkilendirir ve alarm üretir. Satır biçimi:
+<code>2026-11-05T03:12:44 fw_1 AUTH FAIL user=admin src=203.0.113.50</code></p>
+<p>Örnek log ile dene: <a href="?ornek=saldirili">saldırılı</a> · <a href="?ornek=normal">normal gün</a></p>
+<form method="post" enctype="multipart/form-data" class="kart">
+  {% csrf_token %}
+  <p><textarea name="log" placeholder="Log satırlarını buraya yapıştırın"></textarea></p>
+  <p>veya dosya: <input type="file" name="dosya" accept=".log,.txt"> <button type="submit">Analiz et</button></p>
+</form>
+{% if hata_mesaji %}<p class="kotu">{{ hata_mesaji }}</p>{% endif %}
+{% if rapor %}
+  <h2>Rapor ({{ rapor.kaynak }})</h2>
+  <p>{{ rapor.olay }} olay okundu{% if rapor.hatali %}, {{ rapor.hatali }} satır okunamadı{% endif %}, <strong>{{ rapor.alarmlar|length }} alarm</strong>.</p>
+  {% if rapor.alarmlar %}
+  <table><tr><th>Seviye</th><th>Zaman</th><th>Kural</th><th>Açıklama</th><th>Kanıt</th></tr>
+  {% for a in rapor.alarmlar %}
+    <tr><td><span class="rozet {% if a.seviye == 'KRITIK' %}kotu{% else %}uyari{% endif %}">{{ a.seviye }}</span></td>
+    <td>{{ a.zaman|date:"Y-m-d H:i:s" }}</td><td><code>{{ a.kural }}</code></td><td>{{ a.aciklama }}</td><td>{{ a.kanit }} olay</td></tr>
+  {% endfor %}</table>
+  {% else %}<p><span class="rozet iyi">Alarm yok</span></p>{% endif %}
+  <details><summary>Analiz edilen log (ilk 200 satır)</summary><pre>{{ log_onizleme }}</pre></details>
+{% endif %}
+{% endblock %}

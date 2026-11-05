@@ -1,0 +1,17 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}İzleme: {{ s.baslik }}{% endblock %}
+{% block icerik %}
+<h1>{{ s.baslik }}</h1>
+{% include "simulasyon/_sekmeler.html" %}
+<p class="soluk">İzleme düğümü <code>{{ izleyici }}</code> (yönetim VLAN'ında) her cihaza ulaşmayı dener. Bozulan cihazlar ve
+onların arkasında kalıp ulaşılamayan cihazlar alarm üretir.</p>
+<h2>Neyi bozalım?</h2>
+{% include "simulasyon/_secici.html" %}
+<h2>Durum: {{ up }}/{{ toplam }} cihaz UP</h2>
+<table><tr><th>Cihaz</th><th>Ad</th><th>Durum</th></tr>
+{% for d in durumlar %}
+  <tr><td><code>{{ d.ad }}</code></td><td>{{ d.etiket }}</td>
+  <td>{% if d.ok %}<span class="rozet iyi">UP</span>{% else %}<span class="rozet kotu">{{ d.durum }}</span>{% endif %}</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

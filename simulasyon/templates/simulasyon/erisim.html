@@ -1,0 +1,47 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}Erişim matrisi: {{ s.baslik }}{% endblock %}
+{% block icerik %}
+<h1>{{ s.baslik }}</h1>
+{% include "simulasyon/_sekmeler.html" %}
+<h2>Bölgeler arası erişim (satır → sütun)</h2>
+<p class="not">Varsayılan red: açıkça izin verilmeyen her trafik engellenir. Aynı bölge içi serbesttir.</p>
+<div style="overflow:auto"><table>
+  <tr><th></th>{% for z in zonlar %}<th>{{ z }}</th>{% endfor %}</tr>
+  {% for satir in satirlar %}
+    <tr><th>{{ satir.kaynak }}</th>
+    {% for h in satir.hucreler %}
+      <td class="{{ h.durum }}">{% if h.durum == "tum" %}TÜM{% elif h.durum == "kismi" %}{{ h.portlar }}{% else %}-{% endif %}</td>
+    {% endfor %}</tr>
+  {% endfor %}
+</table></div>
+
+<h2>Beklenen engeller</h2>
+{% if ihlaller %}
+  <p><span class="rozet kotu">{{ ihlaller|length }} ihlal</span> — şu erişimler engellenmeliydi ama izin veriliyor:</p>
+  <ul>{% for e in ihlaller %}<li>{{ e.kaynak }} → {{ e.hedef }} {{ e.port|default:"" }}: {{ e.aciklama }}</li>{% endfor %}</ul>
+{% else %}
+  <p><span class="rozet iyi">{{ engeller|length }} engelin hepsi çalışıyor</span></p>
+{% endif %}
+<table><tr><th>Kaynak</th><th>Hedef</th><th>Port</th><th>Açıklama</th></tr>
+{% for e in engeller %}<tr><td>{{ e.kaynak }}</td><td>{{ e.hedef }}</td><td>{{ e.port|default:"tümü" }}</td><td>{{ e.aciklama }}</td></tr>{% endfor %}
+</table>
+
+<h2>Uçtan uca sorgu</h2>
+<p class="not">Kablo yolu ile kural izni ayrı ayrı gösterilir: fiziksel yol olsa bile kural engelleyebilir.</p>
+<form method="get">
+  <select name="kaynak">{% for c in cihazlar %}<option value="{{ c }}" {% if c == kaynak %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+  →
+  <select name="hedef">{% for c in cihazlar %}<option value="{{ c }}" {% if c == hedef %}selected{% endif %}>{{ c }}</option>{% endfor %}</select>
+  port <input type="number" name="port" value="{{ port }}" min="1" max="65535" style="width:6em" placeholder="tümü">
+  <button type="submit">Sorgula</button>
+</form>
+{% if hata_mesaji %}<p class="kotu">{{ hata_mesaji }}</p>{% endif %}
+{% if sorgu %}
+  <p>{{ kaynak }} ({{ sorgu.kaynak_bolge }}) → {{ hedef }} ({{ sorgu.hedef_bolge }}){% if port %} port {{ port }}{% endif %}</p>
+  <table>
+    <tr><th>Fiziksel yol</th><td>{% if sorgu.fiziksel_yol %}<span class="iyi">VAR</span>{% else %}<span class="kotu">YOK</span>{% endif %}</td></tr>
+    <tr><th>Politika izni</th><td>{% if sorgu.politika_izni %}<span class="iyi">VAR</span>{% else %}<span class="kotu">YOK</span>{% endif %}</td></tr>
+    <tr><th>Sonuç</th><td>{% if sorgu.sonuc %}<strong class="iyi">İZİN</strong>{% else %}<strong class="kotu">ENGEL</strong>{% endif %}</td></tr>
+  </table>
+{% endif %}
+{% endblock %}

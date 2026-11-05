@@ -1,0 +1,26 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}Hata simülasyonu: {{ s.baslik }}{% endblock %}
+{% block icerik %}
+<h1>{{ s.baslik }}</h1>
+{% include "simulasyon/_sekmeler.html" %}
+<h2>Neyi bozalım?</h2>
+{% include "simulasyon/_secici.html" %}
+
+{% if sonuc %}
+  <h2>Sonuç</h2>
+  {% if sonuc.kopan %}
+    <p><span class="rozet kotu">{{ sonuc.kopan|length }} gereksinim koptu</span></p>
+    <table><tr><th>Kaynak</th><th>Hedef</th><th>Açıklama</th></tr>
+    {% for r in sonuc.kopan %}<tr><td><code>{{ r.kaynak }}</code></td><td><code>{{ r.hedefler|join:", " }}</code></td><td>{{ r.aciklama }}</td></tr>{% endfor %}
+    </table>
+  {% else %}
+    <p><span class="rozet iyi">Tüm gereksinimler karşılanıyor</span> — yedeklilik çalışıyor.</p>
+  {% endif %}
+  {% if guc_kapanan %}<p class="not">Güç kaynağı kesildiği için kapanan cihazlar: {{ guc_kapanan|join:", " }}</p>{% endif %}
+{% else %}
+  <p class="soluk">Bir ya da birkaç cihaz seçin. Örneğin hastane senaryosunda <code>core_1</code> tek başına bozulunca hiçbir şey kopmaz,
+  <code>core_1</code> ve <code>core_2</code> birlikte bozulunca sunucu odasına erişim kopar.</p>
+{% endif %}
+{% include "simulasyon/_mermaid.html" %}
+<p class="not">Kırmızı: bozulan cihaz. Turuncu kesikli: gücü kesildiği için kapanan cihaz.</p>
+{% endblock %}
