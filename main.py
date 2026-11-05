@@ -8,6 +8,7 @@
     python main.py erisim universite --sorgu ogrenci_cihazi ogrenci_isleri_db 3306
     python main.py siem ornek_loglar/saldirili.log
     python main.py izleme ofis --bozuk core_1
+    python main.py alarm ofis --bozuk core_1 --desen 0111110111
     python main.py diyagram > docs/topolojiler.md
 """
 from __future__ import annotations
@@ -15,7 +16,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from ag_motoru import (erisim_matrisi, hata_simulasyonu, mermaid_uret, mini_izleme,
+from ag_motoru import (alarm_yonetimi, erisim_matrisi, hata_simulasyonu, mermaid_uret, mini_izleme,
                        mini_siem, ornek_log_uret)
 from ag_motoru.ag_modelleri import SENARYOLAR, senaryo_al, tum_senaryolar
 
@@ -73,7 +74,22 @@ def komut_izleme(a) -> None:
     bozuklar = a.bozuk.split(",") if a.bozuk else ()
     for s in _senaryolar(a.senaryo):
         print(mini_izleme.izleme_metni(s, bozuklar))
+        print(alarm_yonetimi.kok_neden_metni(s, mini_izleme.ag_izleme(s, bozuklar)))
         print()
+
+
+def komut_alarm(a) -> None:
+    s = senaryo_al(a.senaryo)
+    bozuklar = a.bozuk.split(",") if a.bozuk else []
+    gecerli = {ad for ad, _, _ in hata_simulasyonu.secilebilir_elemanlar(s)}
+    yanlis = [b for b in bozuklar if b not in gecerli]
+    if yanlis:
+        sys.exit("Bilinmeyen eleman: " + ", ".join(yanlis))
+    try:
+        print(alarm_yonetimi.seri_metni(s, bozuklar, a.desen, deneme=a.deneme,
+                                        pencere=a.pencere, esik=a.esik, aralik_sn=a.aralik))
+    except ValueError as e:
+        sys.exit(str(e))
 
 
 def komut_diyagram(a) -> None:
@@ -111,6 +127,16 @@ def ana() -> None:
     i.add_argument("senaryo", choices=secenekler)
     i.add_argument("--bozuk", help="virgülle ayrılmış bozuk cihazlar")
     i.set_defaults(fn=komut_izleme)
+
+    al = alt.add_parser("alarm", help="zaman içinde alarm akışı: kök neden, histerezis, dalgalanma")
+    al.add_argument("senaryo", choices=list(SENARYOLAR))
+    al.add_argument("--bozuk", required=True, help="virgülle ayrılmış bozulup onarılan elemanlar")
+    al.add_argument("--desen", required=True, help="her kontrol için 1 (bozuk) / 0 (sağlam), örn. 0111010111")
+    al.add_argument("--deneme", type=int, default=3, help="alarm için üst üste başarısız kontrol sayısı")
+    al.add_argument("--pencere", type=int, default=10, help="dalgalanma için bakılan son kontrol sayısı")
+    al.add_argument("--esik", type=int, default=3, help="penceredeki durum değişikliği eşiği")
+    al.add_argument("--aralik", type=int, default=60, help="iki kontrol arası saniye")
+    al.set_defaults(fn=komut_alarm)
 
     d = alt.add_parser("diyagram", help="Mermaid diyagramlarını yazdır")
     d.set_defaults(fn=komut_diyagram)
