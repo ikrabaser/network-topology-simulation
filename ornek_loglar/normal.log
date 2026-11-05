@@ -1,0 +1,186 @@
+2026-11-05T09:01:46 fw_1 AUTH SUCCESS user=mehmet src=10.0.10.131
+2026-11-05T09:01:49 fw_1 FW ALLOW src=10.0.10.131 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T09:02:16 fw_1 TRANSFER OK user=mehmet src=10.0.10.131 bytes=20038290 dst=dosya_sunucu
+2026-11-05T09:11:29 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.152
+2026-11-05T09:11:32 fw_1 FW ALLOW src=10.0.10.152 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T09:11:59 fw_1 TRANSFER OK user=admin_can src=10.0.10.152 bytes=3960951 dst=dosya_sunucu
+2026-11-05T09:12:55 fw_1 AUTH SUCCESS user=ayse src=10.0.30.86
+2026-11-05T09:12:58 fw_1 FW ALLOW src=10.0.30.86 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T09:13:25 fw_1 TRANSFER OK user=ayse src=10.0.30.86 bytes=18741761 dst=dosya_sunucu
+2026-11-05T09:22:50 fw_1 AUTH SUCCESS user=mehmet src=10.0.30.12
+2026-11-05T09:22:53 fw_1 FW ALLOW src=10.0.30.12 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T09:23:20 fw_1 TRANSFER OK user=mehmet src=10.0.30.12 bytes=16755657 dst=dosya_sunucu
+2026-11-05T09:32:01 fw_1 AUTH SUCCESS user=ayse src=10.0.30.2
+2026-11-05T09:32:04 fw_1 FW ALLOW src=10.0.30.2 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T09:32:31 fw_1 TRANSFER OK user=ayse src=10.0.30.2 bytes=30545094 dst=dosya_sunucu
+2026-11-05T09:33:06 fw_1 AUTH SUCCESS user=zeynep src=10.0.30.29
+2026-11-05T09:33:09 fw_1 FW ALLOW src=10.0.30.29 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T09:33:36 fw_1 TRANSFER OK user=zeynep src=10.0.30.29 bytes=35999527 dst=dosya_sunucu
+2026-11-05T09:37:25 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.174
+2026-11-05T09:37:28 fw_1 FW ALLOW src=10.0.10.174 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T09:37:55 fw_1 TRANSFER OK user=admin_can src=10.0.10.174 bytes=8055454 dst=dosya_sunucu
+2026-11-05T09:40:00 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.131
+2026-11-05T09:40:03 fw_1 FW ALLOW src=10.0.10.131 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T09:40:30 fw_1 TRANSFER OK user=admin_can src=10.0.10.131 bytes=4626506 dst=dosya_sunucu
+2026-11-05T09:46:46 fw_1 AUTH SUCCESS user=zeynep src=10.0.10.196
+2026-11-05T09:46:49 fw_1 FW ALLOW src=10.0.10.196 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T09:47:16 fw_1 TRANSFER OK user=zeynep src=10.0.10.196 bytes=8626205 dst=dosya_sunucu
+2026-11-05T09:50:39 fw_1 AUTH SUCCESS user=zeynep src=10.0.10.93
+2026-11-05T09:50:42 fw_1 FW ALLOW src=10.0.10.93 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T09:50:56 fw_1 AUTH SUCCESS user=ayse src=10.0.10.106
+2026-11-05T09:50:59 fw_1 FW ALLOW src=10.0.10.106 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T09:51:09 fw_1 TRANSFER OK user=zeynep src=10.0.10.93 bytes=17761694 dst=dosya_sunucu
+2026-11-05T09:51:26 fw_1 TRANSFER OK user=ayse src=10.0.10.106 bytes=26923358 dst=dosya_sunucu
+2026-11-05T10:18:01 fw_1 AUTH SUCCESS user=mehmet src=10.0.10.65
+2026-11-05T10:18:04 fw_1 FW ALLOW src=10.0.10.65 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T10:18:31 fw_1 TRANSFER OK user=mehmet src=10.0.10.65 bytes=17642290 dst=dosya_sunucu
+2026-11-05T10:24:53 fw_1 AUTH SUCCESS user=mehmet src=10.0.30.156
+2026-11-05T10:24:56 fw_1 FW ALLOW src=10.0.30.156 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T10:25:23 fw_1 TRANSFER OK user=mehmet src=10.0.30.156 bytes=13673184 dst=dosya_sunucu
+2026-11-05T10:28:14 fw_1 AUTH FAIL user=zeynep src=10.0.30.145
+2026-11-05T10:28:23 fw_1 AUTH SUCCESS user=zeynep src=10.0.30.145
+2026-11-05T10:28:26 fw_1 FW ALLOW src=10.0.30.145 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T10:28:53 fw_1 TRANSFER OK user=zeynep src=10.0.30.145 bytes=10012863 dst=dosya_sunucu
+2026-11-05T10:48:59 fw_1 AUTH SUCCESS user=zeynep src=10.0.30.80
+2026-11-05T10:49:02 fw_1 FW ALLOW src=10.0.30.80 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T10:49:29 fw_1 TRANSFER OK user=zeynep src=10.0.30.80 bytes=14970146 dst=dosya_sunucu
+2026-11-05T10:51:33 fw_1 AUTH SUCCESS user=mehmet src=10.0.10.69
+2026-11-05T10:51:36 fw_1 FW ALLOW src=10.0.10.69 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T10:52:03 fw_1 TRANSFER OK user=mehmet src=10.0.10.69 bytes=20142463 dst=dosya_sunucu
+2026-11-05T10:55:40 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.184
+2026-11-05T10:55:43 fw_1 FW ALLOW src=10.0.10.184 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T10:56:10 fw_1 TRANSFER OK user=admin_can src=10.0.10.184 bytes=25069825 dst=dosya_sunucu
+2026-11-05T10:57:00 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.187
+2026-11-05T10:57:03 fw_1 FW ALLOW src=10.0.10.187 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T10:57:30 fw_1 TRANSFER OK user=admin_can src=10.0.10.187 bytes=38678909 dst=dosya_sunucu
+2026-11-05T10:59:24 fw_1 AUTH SUCCESS user=ayse src=10.0.10.145
+2026-11-05T10:59:27 fw_1 FW ALLOW src=10.0.10.145 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T10:59:54 fw_1 TRANSFER OK user=ayse src=10.0.10.145 bytes=36580403 dst=dosya_sunucu
+2026-11-05T11:05:01 fw_1 AUTH FAIL user=ali src=10.0.10.86
+2026-11-05T11:05:21 fw_1 AUTH SUCCESS user=ali src=10.0.10.86
+2026-11-05T11:05:24 fw_1 FW ALLOW src=10.0.10.86 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T11:05:51 fw_1 TRANSFER OK user=ali src=10.0.10.86 bytes=32585615 dst=dosya_sunucu
+2026-11-05T11:09:17 fw_1 AUTH FAIL user=ayse src=10.0.10.107
+2026-11-05T11:09:43 fw_1 AUTH SUCCESS user=ayse src=10.0.10.107
+2026-11-05T11:09:46 fw_1 FW ALLOW src=10.0.10.107 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T11:10:13 fw_1 TRANSFER OK user=ayse src=10.0.10.107 bytes=16664221 dst=dosya_sunucu
+2026-11-05T11:13:24 fw_1 AUTH SUCCESS user=mehmet src=10.0.30.42
+2026-11-05T11:13:27 fw_1 FW ALLOW src=10.0.30.42 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T11:13:54 fw_1 TRANSFER OK user=mehmet src=10.0.30.42 bytes=20311581 dst=dosya_sunucu
+2026-11-05T11:17:18 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.176
+2026-11-05T11:17:21 fw_1 FW ALLOW src=10.0.10.176 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T11:17:48 fw_1 TRANSFER OK user=admin_can src=10.0.10.176 bytes=36045468 dst=dosya_sunucu
+2026-11-05T11:25:42 fw_1 AUTH SUCCESS user=ayse src=10.0.10.99
+2026-11-05T11:25:45 fw_1 FW ALLOW src=10.0.10.99 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T11:26:12 fw_1 TRANSFER OK user=ayse src=10.0.10.99 bytes=14937274 dst=dosya_sunucu
+2026-11-05T11:31:48 fw_1 AUTH SUCCESS user=zeynep src=10.0.30.43
+2026-11-05T11:31:51 fw_1 FW ALLOW src=10.0.30.43 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T11:32:18 fw_1 TRANSFER OK user=zeynep src=10.0.30.43 bytes=17926578 dst=dosya_sunucu
+2026-11-05T11:35:47 fw_1 AUTH SUCCESS user=zeynep src=10.0.30.41
+2026-11-05T11:35:50 fw_1 FW ALLOW src=10.0.30.41 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T11:36:17 fw_1 TRANSFER OK user=zeynep src=10.0.30.41 bytes=3934747 dst=dosya_sunucu
+2026-11-05T12:13:29 fw_1 AUTH SUCCESS user=zeynep src=10.0.30.121
+2026-11-05T12:13:32 fw_1 FW ALLOW src=10.0.30.121 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T12:13:59 fw_1 TRANSFER OK user=zeynep src=10.0.30.121 bytes=6614711 dst=dosya_sunucu
+2026-11-05T12:18:14 fw_1 AUTH SUCCESS user=mehmet src=10.0.10.16
+2026-11-05T12:18:17 fw_1 FW ALLOW src=10.0.10.16 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T12:18:44 fw_1 TRANSFER OK user=mehmet src=10.0.10.16 bytes=5295296 dst=dosya_sunucu
+2026-11-05T12:27:13 fw_1 AUTH SUCCESS user=mehmet src=10.0.10.177
+2026-11-05T12:27:16 fw_1 FW ALLOW src=10.0.10.177 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T12:27:43 fw_1 TRANSFER OK user=mehmet src=10.0.10.177 bytes=15381155 dst=dosya_sunucu
+2026-11-05T12:49:06 fw_1 AUTH SUCCESS user=ayse src=10.0.30.152
+2026-11-05T12:49:09 fw_1 FW ALLOW src=10.0.30.152 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T12:49:36 fw_1 TRANSFER OK user=ayse src=10.0.30.152 bytes=10724555 dst=dosya_sunucu
+2026-11-05T12:59:15 fw_1 AUTH SUCCESS user=admin_can src=10.0.30.32
+2026-11-05T12:59:18 fw_1 FW ALLOW src=10.0.30.32 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T12:59:45 fw_1 TRANSFER OK user=admin_can src=10.0.30.32 bytes=22698538 dst=dosya_sunucu
+2026-11-05T13:02:00 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.14
+2026-11-05T13:02:03 fw_1 FW ALLOW src=10.0.10.14 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T13:02:30 fw_1 TRANSFER OK user=admin_can src=10.0.10.14 bytes=1000382 dst=dosya_sunucu
+2026-11-05T13:05:00 fw_1 AUTH SUCCESS user=ayse src=10.0.30.48
+2026-11-05T13:05:03 fw_1 FW ALLOW src=10.0.30.48 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T13:05:30 fw_1 TRANSFER OK user=ayse src=10.0.30.48 bytes=5068994 dst=dosya_sunucu
+2026-11-05T13:09:42 fw_1 AUTH SUCCESS user=mehmet src=10.0.10.4
+2026-11-05T13:09:45 fw_1 FW ALLOW src=10.0.10.4 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T13:10:12 fw_1 TRANSFER OK user=mehmet src=10.0.10.4 bytes=6719628 dst=dosya_sunucu
+2026-11-05T13:18:08 fw_1 AUTH SUCCESS user=ayse src=10.0.30.106
+2026-11-05T13:18:11 fw_1 FW ALLOW src=10.0.30.106 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T13:18:38 fw_1 TRANSFER OK user=ayse src=10.0.30.106 bytes=28937355 dst=dosya_sunucu
+2026-11-05T13:20:23 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.16
+2026-11-05T13:20:26 fw_1 FW ALLOW src=10.0.10.16 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T13:20:53 fw_1 TRANSFER OK user=admin_can src=10.0.10.16 bytes=12480502 dst=dosya_sunucu
+2026-11-05T13:38:16 fw_1 AUTH FAIL user=zeynep src=10.0.10.195
+2026-11-05T13:38:28 fw_1 AUTH SUCCESS user=zeynep src=10.0.10.195
+2026-11-05T13:38:31 fw_1 FW ALLOW src=10.0.10.195 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T13:38:58 fw_1 TRANSFER OK user=zeynep src=10.0.10.195 bytes=10746210 dst=dosya_sunucu
+2026-11-05T13:57:57 fw_1 AUTH SUCCESS user=ali src=10.0.30.151
+2026-11-05T13:58:00 fw_1 FW ALLOW src=10.0.30.151 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T13:58:27 fw_1 TRANSFER OK user=ali src=10.0.30.151 bytes=8562724 dst=dosya_sunucu
+2026-11-05T14:01:29 fw_1 AUTH SUCCESS user=mehmet src=10.0.30.149
+2026-11-05T14:01:32 fw_1 FW ALLOW src=10.0.30.149 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T14:01:59 fw_1 TRANSFER OK user=mehmet src=10.0.30.149 bytes=3085222 dst=dosya_sunucu
+2026-11-05T14:11:07 fw_1 AUTH FAIL user=ayse src=10.0.10.160
+2026-11-05T14:11:45 fw_1 AUTH SUCCESS user=ayse src=10.0.10.160
+2026-11-05T14:11:48 fw_1 FW ALLOW src=10.0.10.160 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T14:12:15 fw_1 TRANSFER OK user=ayse src=10.0.10.160 bytes=17509689 dst=dosya_sunucu
+2026-11-05T14:16:18 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.193
+2026-11-05T14:16:21 fw_1 FW ALLOW src=10.0.10.193 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T14:16:48 fw_1 TRANSFER OK user=admin_can src=10.0.10.193 bytes=39213494 dst=dosya_sunucu
+2026-11-05T14:34:03 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.172
+2026-11-05T14:34:06 fw_1 FW ALLOW src=10.0.10.172 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T14:34:33 fw_1 TRANSFER OK user=admin_can src=10.0.10.172 bytes=6961572 dst=dosya_sunucu
+2026-11-05T14:46:24 fw_1 AUTH FAIL user=zeynep src=10.0.30.13
+2026-11-05T14:46:37 fw_1 AUTH SUCCESS user=zeynep src=10.0.30.13
+2026-11-05T14:46:40 fw_1 FW ALLOW src=10.0.30.13 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T14:47:07 fw_1 TRANSFER OK user=zeynep src=10.0.30.13 bytes=17589520 dst=dosya_sunucu
+2026-11-05T14:49:12 fw_1 AUTH SUCCESS user=ali src=10.0.10.191
+2026-11-05T14:49:15 fw_1 FW ALLOW src=10.0.10.191 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T14:49:42 fw_1 TRANSFER OK user=ali src=10.0.10.191 bytes=9374231 dst=dosya_sunucu
+2026-11-05T15:00:18 fw_1 AUTH SUCCESS user=zeynep src=10.0.10.69
+2026-11-05T15:00:21 fw_1 FW ALLOW src=10.0.10.69 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T15:00:48 fw_1 TRANSFER OK user=zeynep src=10.0.10.69 bytes=28406306 dst=dosya_sunucu
+2026-11-05T15:01:08 fw_1 AUTH SUCCESS user=ayse src=10.0.30.22
+2026-11-05T15:01:11 fw_1 FW ALLOW src=10.0.30.22 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T15:01:38 fw_1 TRANSFER OK user=ayse src=10.0.30.22 bytes=25519839 dst=dosya_sunucu
+2026-11-05T15:04:14 fw_1 AUTH SUCCESS user=ali src=10.0.30.145
+2026-11-05T15:04:17 fw_1 FW ALLOW src=10.0.30.145 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T15:04:44 fw_1 TRANSFER OK user=ali src=10.0.30.145 bytes=10381898 dst=dosya_sunucu
+2026-11-05T15:15:27 fw_1 AUTH SUCCESS user=mehmet src=10.0.30.66
+2026-11-05T15:15:30 fw_1 FW ALLOW src=10.0.30.66 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T15:15:57 fw_1 TRANSFER OK user=mehmet src=10.0.30.66 bytes=6204045 dst=dosya_sunucu
+2026-11-05T15:21:16 fw_1 AUTH SUCCESS user=zeynep src=10.0.30.73
+2026-11-05T15:21:19 fw_1 FW ALLOW src=10.0.30.73 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T15:21:46 fw_1 TRANSFER OK user=zeynep src=10.0.30.73 bytes=6869215 dst=dosya_sunucu
+2026-11-05T15:23:17 fw_1 AUTH SUCCESS user=ali src=10.0.10.138
+2026-11-05T15:23:20 fw_1 FW ALLOW src=10.0.10.138 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T15:23:47 fw_1 TRANSFER OK user=ali src=10.0.10.138 bytes=31031757 dst=dosya_sunucu
+2026-11-05T15:42:12 fw_1 AUTH SUCCESS user=ali src=10.0.10.153
+2026-11-05T15:42:15 fw_1 FW ALLOW src=10.0.10.153 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T15:42:42 fw_1 TRANSFER OK user=ali src=10.0.10.153 bytes=6297781 dst=dosya_sunucu
+2026-11-05T15:47:58 fw_1 AUTH SUCCESS user=admin_can src=10.0.30.151
+2026-11-05T15:48:01 fw_1 FW ALLOW src=10.0.30.151 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T15:48:28 fw_1 TRANSFER OK user=admin_can src=10.0.30.151 bytes=9293286 dst=dosya_sunucu
+2026-11-05T15:50:04 fw_1 AUTH SUCCESS user=mehmet src=10.0.30.30
+2026-11-05T15:50:07 fw_1 FW ALLOW src=10.0.30.30 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T15:50:34 fw_1 TRANSFER OK user=mehmet src=10.0.30.30 bytes=30458882 dst=dosya_sunucu
+2026-11-05T16:05:14 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.155
+2026-11-05T16:05:17 fw_1 FW ALLOW src=10.0.10.155 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T16:05:44 fw_1 TRANSFER OK user=admin_can src=10.0.10.155 bytes=7517315 dst=dosya_sunucu
+2026-11-05T16:12:34 fw_1 AUTH SUCCESS user=zeynep src=10.0.10.100
+2026-11-05T16:12:37 fw_1 FW ALLOW src=10.0.10.100 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T16:13:04 fw_1 TRANSFER OK user=zeynep src=10.0.10.100 bytes=35518262 dst=dosya_sunucu
+2026-11-05T16:20:47 fw_1 AUTH SUCCESS user=ali src=10.0.30.139
+2026-11-05T16:20:50 fw_1 FW ALLOW src=10.0.30.139 dst=10.0.60.10 dport=88 zone=personel_wifi
+2026-11-05T16:21:17 fw_1 TRANSFER OK user=ali src=10.0.30.139 bytes=5298191 dst=dosya_sunucu
+2026-11-05T16:28:48 fw_1 AUTH SUCCESS user=ali src=10.0.30.104
+2026-11-05T16:28:51 fw_1 FW ALLOW src=10.0.30.104 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T16:29:18 fw_1 TRANSFER OK user=ali src=10.0.30.104 bytes=38072808 dst=dosya_sunucu
+2026-11-05T16:39:39 fw_1 AUTH SUCCESS user=admin_can src=10.0.10.41
+2026-11-05T16:39:42 fw_1 FW ALLOW src=10.0.10.41 dst=10.0.60.10 dport=443 zone=personel_wifi
+2026-11-05T16:40:09 fw_1 TRANSFER OK user=admin_can src=10.0.10.41 bytes=36207113 dst=dosya_sunucu
+2026-11-05T16:58:36 fw_1 AUTH SUCCESS user=mehmet src=10.0.10.169
+2026-11-05T16:58:39 fw_1 FW ALLOW src=10.0.10.169 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T16:59:06 fw_1 TRANSFER OK user=mehmet src=10.0.10.169 bytes=30803026 dst=dosya_sunucu
+2026-11-05T16:59:34 fw_1 AUTH SUCCESS user=ayse src=10.0.30.31
+2026-11-05T16:59:37 fw_1 FW ALLOW src=10.0.30.31 dst=10.0.60.10 dport=53 zone=personel_wifi
+2026-11-05T17:00:04 fw_1 TRANSFER OK user=ayse src=10.0.30.31 bytes=37136210 dst=dosya_sunucu
