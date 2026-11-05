@@ -9,18 +9,27 @@ Ağ mimarilerini (ofis, e-ticaret, üniversite, hastane) **graf olarak modelleye
 - **Mini SIEM:** farklı cihazların loglarını okur, olayları ilişkilendirir, alarm üretir.
 - **Mini izleme:** Zabbix mantığıyla, izleme düğümü her cihaza ulaşabiliyor mu?
 - **Django web arayüzü:** hepsini tarayıcıdan dener, diyagramı çizer, bozulan cihazı kırmızı gösterir.
+- **Veritabanı ve admin paneli:** topoloji, kablolar, gereksinimler, VLAN kuralları SQLite'ta tutulur; admin panelinden düzenlenir, yeni senaryo eklenir.
+- **Hesaplar ve geçmiş:** kayıt/giriş vardır; çalıştırılan simülasyonlar kullanıcıya özel geçmişe kaydedilir.
+- **REST API:** aynı hesaplamalar JSON olarak (Django REST framework).
 
 ![Senaryolar sayfası: dört senaryo, her birinin tek hata noktası sayısı](docs/img/ana-sayfa.png)
 
 ## Mimari
 
-Motor (`ag_motoru/`) Django'dan bağımsız saf Python + NetworkX'tir; komut satırı ve Django sadece üstündeki arayüzlerdir.
+Motor (`ag_motoru/`) Django'dan bağımsız saf Python + NetworkX'tir. Komut satırı motoru doğrudan, web arayüzü ve REST API ise `servis.py` üzerinden kullanır; senaryolar veritabanında durur ve `yukle.py` ile motorun grafına çevrilir.
 
 ```mermaid
 flowchart LR
     subgraph arayuz["Arayüzler"]
         cli["main.py<br/>komut satırı"]
-        web["simulasyon/<br/>Django web arayüzü"]
+        web["simulasyon/<br/>web arayüzü + admin"]
+        api["simulasyon/api.py<br/>REST API"]
+    end
+    subgraph katman["Django katmanı"]
+        servis["servis.py<br/>hesaplama ve kayıt"]
+        yukle["yukle.py<br/>veritabanı ↔ motor"]
+        db[("SQLite<br/>senaryolar, kullanıcılar, geçmiş")]
     end
     subgraph motor["ag_motoru/ (saf Python + NetworkX)"]
         modeller["ag_modelleri<br/>4 senaryonun grafı"]
@@ -36,8 +45,13 @@ flowchart LR
     hata --> izleme
     modeller --> diyagram
     loglar -.-> siem
-    cli --> motor
-    web --> motor
+    cli --> modeller
+    web --> servis
+    api --> servis
+    servis --> yukle
+    yukle --> db
+    yukle --> motor
+    servis --> motor
 ```
 
 ## Kurulum
@@ -48,23 +62,30 @@ Windows PowerShell:
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+python manage.py migrate                # veritabanını (db.sqlite3) oluşturur
+python manage.py seed_senaryolar        # dört yerleşik senaryoyu veritabanına yükler
+python manage.py createsuperuser        # admin paneli için (isteğe bağlı)
 python manage.py runserver
 ```
 
-Tarayıcıda `http://127.0.0.1:8000` açılır. Diyagramlar Mermaid ile çizildiği için tarayıcının internete erişebilmesi gerekir (kütüphane CDN'den yüklenir).
+Tarayıcıda `http://127.0.0.1:8000` açılır. `seed_senaryolar` var olan senaryoyu değiştirmez (elle yaptığınız düzenlemeler korunur); kodla yazılmış hâline döndürmek için `python manage.py seed_senaryolar ofis --yenile` çalıştırın. Simülasyon geçmişi `--yenile` ile silinmez. Diyagramlar Mermaid ile çizildiği için tarayıcının internete erişebilmesi gerekir (kütüphane CDN'den yüklenir).
 
 ## Web arayüzü
 
 | Sayfa | Ne yapar |
 |---|---|
 | `/` | Dört senaryo, her biri için tek hata noktası sayısı |
-| `/senaryo/<ad>/` | Topoloji diyagramı, tek hata noktası tablosu, gereksinimler |
-| `/senaryo/<ad>/hata/` | Cihaz/güç kaynağı seç, bozulunca ne koptuğunu gör; bozulanlar diyagramda kırmızı |
-| `/senaryo/<ad>/erisim/` | VLAN matrisi, beklenen engellerin doğrulaması, uçtan uca sorgu |
-| `/senaryo/<ad>/izleme/` | İzleme düğümü gözüyle cihaz durumları |
-| `/siem/` | Log yapıştır ya da yükle, alarmları gör (örnek loglar hazır) |
+| `/senaryo/<kisa-ad>/` | Topoloji diyagramı, tek hata noktası tablosu, gereksinimler |
+| `/senaryo/<kisa-ad>/hata/` | Cihaz/güç kaynağı seç, bozulunca ne koptuğunu gör; bozulanlar diyagramda kırmızı |
+| `/senaryo/<kisa-ad>/erisim/` | VLAN matrisi, beklenen engellerin doğrulaması, uçtan uca sorgu |
+| `/senaryo/<kisa-ad>/izleme/` | İzleme düğümü gözüyle cihaz durumları |
+| `/siem/` | Log yapıştır ya da yükle, alarmları gör (örnek loglar giriş gerektirmez; kendi logunuz için giriş gerekir) |
+| `/gecmis/` | Giriş yapan kullanıcının kayıtlı simülasyonları |
+| `/hesap/giris/`, `/hesap/kayit/` | Giriş ve kayıt |
+| `/admin/` | Senaryo düzenleme (yönetici hesabı) |
+| `/api/` | REST API |
 
-Senaryo adları: `ofis`, `eticaret`, `universite`, `hastane`.
+Yerleşik senaryoların kısa adları: `ofis`, `eticaret`, `universite`, `hastane`. Admin panelinden eklediğiniz senaryo da kendi kısa adıyla aynı sayfalarda açılır.
 
 ### Hata simülasyonu
 
@@ -84,7 +105,51 @@ Saldırılı örnek log: 212 olay, 5 alarm.
 
 ![SIEM sayfası: örnek saldırılı log için 5 alarm](docs/img/siem-raporu.png)
 
+## Veritabanı ve admin paneli
+
+Senaryolar kodda değil veritabanında durur. `/admin/` altında bir senaryoyu açınca cihazlar, kablolar, gereksinimler, izin kuralları ve beklenen engeller tek sayfada düzenlenir; sayfanın üstünde tek hata noktası özeti ve tutarsızlık listesi (bağlantısız cihaz, olmayan bölgeye kural, olmayan izleme düğümü) görünür.
+
+![Admin paneli: senaryo listesi, her senaryo için cihaz, kablo ve merkezi tek hata noktası sayısı](docs/img/admin-liste.png)
+
+Hatalı topoloji kayda girmez: cihaz adı küçük harfle başlayan `a-z0-9_` olmalıdır ve Mermaid'in ayrılmış sözcükleri (`end`, `graph`, ...) yasaktır; bir cihaz kendine bağlanamaz, ters yönde ikinci kablo eklenemez, kablo ve gereksinimde yalnızca aynı senaryonun cihazları seçilebilir; port numaraları 1-65535 olmalıdır. Yeni bir cihaza kablo bağlamak için önce cihazı kaydedin, sonra kablo ekleyin.
+
+Yerleşik dört senaryo, veritabanından yüklendiğinde kodla yazılmış hâliyle birebir aynı graf, gereksinim, kural ve analiz sonucunu verir (bu bir testle doğrulanır).
+
+## Hesaplar ve geçmiş
+
+Kayıt olup giriş yapınca hata, izleme ve erişim sayfalarında **Geçmişe kaydet** düğmesi görünür. Kayıt sırasında sonuç istemciden alınmaz, sunucuda yeniden hesaplanır. SIEM'de kendi logunuzu analiz ettiğinizde sonuç otomatik kaydedilir (logun kendisi saklanmaz, yalnızca kaynak adı, satır sayısı ve alarmlar). Her kullanıcı yalnızca kendi kayıtlarını görür ve silebilir.
+
+![Geçmiş sayfası: kayıtlı hata, izleme, erişim ve SIEM sonuçları](docs/img/gecmis.png)
+
+## REST API
+
+Okuma ve hesaplama uçları herkese açıktır; sonucu kaydetmek, SIEM analizi ve geçmiş giriş ister. Giriş için tarayıcı oturumu ya da HTTP Basic kullanılır.
+
+| Uç | GET | POST |
+|---|---|---|
+| `/api/senaryolar/` | senaryo listesi ve özetleri | |
+| `/api/senaryolar/<kisa-ad>/` | cihazlar, kablolar, gereksinimler, tutarsızlıklar | |
+| `/api/senaryolar/<kisa-ad>/analiz/` | tek hata noktası analizi | |
+| `/api/senaryolar/<kisa-ad>/diyagram/` | Mermaid metni | |
+| `/api/senaryolar/<kisa-ad>/hata/?bozuk=core_1&bozuk=core_2` | hata simülasyonu | aynı hesap + geçmişe kaydet (giriş) |
+| `/api/senaryolar/<kisa-ad>/izleme/?bozuk=...` | izleme durumları | aynı + kaydet (giriş) |
+| `/api/senaryolar/<kisa-ad>/erisim/` | VLAN matrisi; `?kaynak=&hedef=&port=` ile uçtan uca sorgu | sorgu + kaydet (giriş) |
+| `/api/siem/` | | `{"log": "..."}` analiz + kaydet (giriş) |
+| `/api/gecmis/`, `/api/gecmis/<id>/` | kendi kayıtların (`?tur=hata`) | DELETE ile silme |
+
+Bilinmeyen cihaz adı ya da geçersiz port `400` döner; bilinmeyen senaryo `404`.
+
+```powershell
+curl.exe http://127.0.0.1:8000/api/senaryolar/
+curl.exe "http://127.0.0.1:8000/api/senaryolar/hastane/hata/?bozuk=core_1&bozuk=core_2"
+# kaydetmek için giriş gerekir (parolayı curl sorar)
+'{"bozuk": ["core_1", "core_2"]}' | Out-File -Encoding ascii istek.json
+curl.exe -u kullanici -X POST -H "Content-Type: application/json" -d "@istek.json" http://127.0.0.1:8000/api/senaryolar/hastane/hata/
+```
+
 ## Komut satırı
+
+Komut satırı veritabanını kullanmaz; kodla yazılmış dört yerleşik senaryo üzerinde çalışır.
 
 ```powershell
 python main.py hata hastane                          # tek hata noktası raporu
@@ -273,7 +338,8 @@ Güç tarafı: `ofis(jenerator=False)` ile jeneratörsüz ofis kurulursa `sebeke
 - Güç modeli "kaynaklardan biri yeter" mantığındadır; UPS'in dayanma süresi, ATS gecikmesi gibi zaman boyutu yoktur.
 - VLAN politikası bölge düzeyindedir; cihaz bazında kural yoktur.
 - SIEM eşikleri örnek değerlerdir, gerçek bir ağın trafiğine göre ayarlanmalıdır.
-- Web arayüzü yerel kullanım içindir: `SECRET_KEY` geliştirme anahtarıdır, kimlik doğrulama yoktur. Başka bir ortamda `DJANGO_SECRET_KEY` ve `DJANGO_DEBUG=0` ortam değişkenleriyle çalıştırın.
+- Web arayüzü ve API yerel kullanım içindir: `SECRET_KEY` geliştirme anahtarıdır, herkes kayıt olabilir, HTTP Basic kimlik bilgisi şifrelenmeden gider ve istek sınırlaması yoktur. Başka bir ortamda `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=0` ve `ALLOWED_HOSTS` ayarlarıyla, HTTPS arkasında çalıştırın.
+- Komut satırı veritabanındaki senaryoları değil, kodla yazılmış dört senaryoyu kullanır; admin panelinde yapılan düzenleme komut satırına yansımaz.
 
 ## Proje yapısı
 
@@ -286,7 +352,15 @@ ag_motoru/                 Django'dan bağımsız simülasyon motoru
   mini_izleme.py           izleme durumu, TCP kontrolü
   mermaid_uret.py          graftan Mermaid diyagramı
   ornek_log_uret.py        örnek log üretici
-simulasyon/                Django uygulaması (görünümler, şablonlar, web testleri)
+simulasyon/                Django uygulaması
+  models.py                senaryo, cihaz, kablo, gereksinim, kural, engel, simülasyon geçmişi
+  yukle.py                 veritabanı <-> motor dönüşümü
+  servis.py                hesaplama ve geçmişe kayıt (web ve API ortak kullanır)
+  views.py, urls.py        web sayfaları, giriş/kayıt, geçmiş
+  api.py, api_urls.py      REST API
+  admin.py                 senaryo düzenleme paneli
+  management/commands/     seed_senaryolar komutu
+  templates/, tests/       şablonlar ve testler
 config/                    Django ayarları
 tests/                     motor testleri (pytest)
 ornek_loglar/              normal.log, saldirili.log
@@ -299,7 +373,7 @@ main.py                    komut satırı arayüzü
 
 ```powershell
 python -m pytest -q          # motor: 60 test
-python manage.py test        # web arayüzü: 23 test
+python manage.py test        # web, admin, API, hesap ve veritabanı: 106 test
 ```
 
 Testler ayrıca "yedekli senaryoda merkezi tek hata noktası yok", "iki core birden düşünce kopar", "kablo yolu var ama politika engeller", "sunucu içinden geçiş yok" gibi mimari beklentileri doğrular.

@@ -9,6 +9,9 @@ A Python project that **models network architectures as graphs** (office, e-comm
 - **Mini SIEM:** reads logs from different devices, correlates events and raises alarms.
 - **Mini monitoring:** Zabbix-style check of whether the monitoring node can reach every device.
 - **Django web interface:** try everything in the browser, see the diagram with failed devices marked in red.
+- **Database and admin panel:** topology, cables, requirements and VLAN rules are stored in SQLite; edit them or add new scenarios in the admin panel.
+- **Accounts and history:** sign-up and login; the simulations you run are saved to a per-user history.
+- **REST API:** the same computations as JSON (Django REST framework).
 
 ![Scenarios page: four scenarios with their single-point-of-failure counts](docs/img/ana-sayfa.png)
 
@@ -16,13 +19,19 @@ A Python project that **models network architectures as graphs** (office, e-comm
 
 ## Architecture
 
-The engine (`ag_motoru/`) is pure Python + NetworkX and independent of Django. The command line and Django are only interfaces on top of it.
+The engine (`ag_motoru/`) is pure Python + NetworkX and independent of Django. The command line uses the engine directly; the web UI and the REST API go through `servis.py`. Scenarios live in the database and `yukle.py` turns them into the engine's graph.
 
 ```mermaid
 flowchart LR
     subgraph arayuz["Interfaces"]
         cli["main.py<br/>command line"]
-        web["simulasyon/<br/>Django web UI"]
+        web["simulasyon/<br/>web UI + admin"]
+        api["simulasyon/api.py<br/>REST API"]
+    end
+    subgraph katman["Django layer"]
+        servis["servis.py<br/>computation and saving"]
+        yukle["yukle.py<br/>database ↔ engine"]
+        db[("SQLite<br/>scenarios, users, history")]
     end
     subgraph motor["ag_motoru/ (pure Python + NetworkX)"]
         modeller["ag_modelleri<br/>graphs of 4 scenarios"]
@@ -38,8 +47,13 @@ flowchart LR
     hata --> izleme
     modeller --> diyagram
     loglar -.-> siem
-    cli --> motor
-    web --> motor
+    cli --> modeller
+    web --> servis
+    api --> servis
+    servis --> yukle
+    yukle --> db
+    yukle --> motor
+    servis --> motor
 ```
 
 ## Setup
@@ -50,23 +64,30 @@ Windows PowerShell:
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+python manage.py migrate                # creates the database (db.sqlite3)
+python manage.py seed_senaryolar        # loads the four built-in scenarios into the database
+python manage.py createsuperuser        # for the admin panel (optional)
 python manage.py runserver
 ```
 
-Open `http://127.0.0.1:8000` in a browser. Diagrams are drawn with Mermaid, so the browser needs internet access (the library is loaded from a CDN).
+Open `http://127.0.0.1:8000` in a browser. `seed_senaryolar` does not change a scenario that already exists (your manual edits are kept); to reset one to its code-defined form, run `python manage.py seed_senaryolar ofis --yenile`. `--yenile` does not delete simulation history. Diagrams are drawn with Mermaid, so the browser needs internet access (the library is loaded from a CDN).
 
 ## Web interface
 
 | Page | What it does |
 |---|---|
 | `/` | The four scenarios, with the single-point-of-failure count for each |
-| `/senaryo/<name>/` | Topology diagram, single-point-of-failure table, requirements |
-| `/senaryo/<name>/hata/` | Pick devices or power sources, see what breaks; failed devices turn red in the diagram |
-| `/senaryo/<name>/erisim/` | VLAN matrix, verification of the expected denials, end-to-end query |
-| `/senaryo/<name>/izleme/` | Device states as seen by the monitoring node |
-| `/siem/` | Paste or upload logs, see alarms (sample logs included) |
+| `/senaryo/<slug>/` | Topology diagram, single-point-of-failure table, requirements |
+| `/senaryo/<slug>/hata/` | Pick devices or power sources, see what breaks; failed devices turn red in the diagram |
+| `/senaryo/<slug>/erisim/` | VLAN matrix, verification of the expected denials, end-to-end query |
+| `/senaryo/<slug>/izleme/` | Device states as seen by the monitoring node |
+| `/siem/` | Paste or upload logs, see alarms (sample logs need no login; your own logs require login) |
+| `/gecmis/` | The signed-in user's saved simulations |
+| `/hesap/giris/`, `/hesap/kayit/` | Login and sign-up |
+| `/admin/` | Scenario editing (admin account) |
+| `/api/` | REST API |
 
-Scenario names: `ofis` (office), `eticaret` (e-commerce), `universite` (university), `hastane` (hospital).
+Slugs of the built-in scenarios: `ofis` (office), `eticaret` (e-commerce), `universite` (university), `hastane` (hospital). A scenario you add in the admin panel opens on the same pages under its own slug.
 
 ### Failure simulation
 
@@ -86,7 +107,51 @@ Sample attack log: 212 events, 5 alarms.
 
 ![SIEM page: 5 alarms for the sample attack log](docs/img/siem-raporu.png)
 
+## Database and admin panel
+
+Scenarios live in the database, not in code. Open a scenario under `/admin/` and edit its devices, cables, requirements, allow rules and expected denials on one page; the top of the page shows a single-point-of-failure summary and a list of inconsistencies (a device with no cable, a rule for a zone with no devices, a missing monitoring node).
+
+![Admin panel: scenario list with device, cable and central single-point-of-failure counts](docs/img/admin-liste.png)
+
+Invalid topology cannot be saved: a device name must start with a lowercase letter and use only `a-z0-9_`, and Mermaid reserved words (`end`, `graph`, ...) are rejected; a device cannot connect to itself, a second cable in the reverse direction cannot be added, only devices of the same scenario can be picked for cables and requirements, and port numbers must be 1-65535. To cable a new device, save the device first, then add the cable.
+
+When the four built-in scenarios are loaded from the database they give exactly the same graph, requirements, rules and analysis results as the code-defined versions (a test verifies this).
+
+## Accounts and history
+
+After signing in, the failure, monitoring and access pages show a **Geçmişe kaydet** (save to history) button. The result is not taken from the client; it is recomputed on the server when saved. When you analyse your own log in the SIEM page, the result is saved automatically (the log itself is not stored, only the source name, line count and alarms). Each user sees and deletes only their own records.
+
+![History page: saved failure, monitoring, access and SIEM results](docs/img/gecmis.png)
+
+## REST API
+
+Read and compute endpoints are public; saving a result, SIEM analysis and history require login. Authentication is a browser session or HTTP Basic.
+
+| Endpoint | GET | POST |
+|---|---|---|
+| `/api/senaryolar/` | scenario list and summaries | |
+| `/api/senaryolar/<slug>/` | devices, cables, requirements, inconsistencies | |
+| `/api/senaryolar/<slug>/analiz/` | single-point-of-failure analysis | |
+| `/api/senaryolar/<slug>/diyagram/` | Mermaid text | |
+| `/api/senaryolar/<slug>/hata/?bozuk=core_1&bozuk=core_2` | failure simulation | same computation + save to history (login) |
+| `/api/senaryolar/<slug>/izleme/?bozuk=...` | monitoring states | same + save (login) |
+| `/api/senaryolar/<slug>/erisim/` | VLAN matrix; end-to-end query with `?kaynak=&hedef=&port=` | query + save (login) |
+| `/api/siem/` | | `{"log": "..."}` analyse + save (login) |
+| `/api/gecmis/`, `/api/gecmis/<id>/` | your own records (`?tur=hata`) | DELETE to remove |
+
+An unknown device name or an invalid port returns `400`; an unknown scenario returns `404`.
+
+```powershell
+curl.exe http://127.0.0.1:8000/api/senaryolar/
+curl.exe "http://127.0.0.1:8000/api/senaryolar/hastane/hata/?bozuk=core_1&bozuk=core_2"
+# saving requires login (curl asks for the password)
+'{"bozuk": ["core_1", "core_2"]}' | Out-File -Encoding ascii istek.json
+curl.exe -u username -X POST -H "Content-Type: application/json" -d "@istek.json" http://127.0.0.1:8000/api/senaryolar/hastane/hata/
+```
+
 ## Command line
+
+The command line does not use the database; it works on the four built-in scenarios defined in code.
 
 ```powershell
 python main.py hata hastane                          # single-point-of-failure report
@@ -275,7 +340,8 @@ On the power side: if you build the office with `ofis(jenerator=False)` (no gene
 - The power model is "any one source is enough"; there is no time dimension such as UPS runtime or ATS delay.
 - VLAN policy works at zone level; there are no per-device rules.
 - SIEM thresholds are sample values and must be tuned to the traffic of a real network.
-- The web interface is for local use: `SECRET_KEY` is a development key and there is no authentication. In any other environment, run it with the `DJANGO_SECRET_KEY` and `DJANGO_DEBUG=0` environment variables.
+- The web interface and API are for local use: `SECRET_KEY` is a development key, anyone can sign up, HTTP Basic credentials are sent unencrypted and there is no rate limiting. In any other environment, set `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=0` and `ALLOWED_HOSTS`, and run behind HTTPS.
+- The command line uses the four code-defined scenarios, not the ones in the database; edits made in the admin panel do not show up there.
 
 ## Project structure
 
@@ -288,7 +354,15 @@ ag_motoru/                 simulation engine, independent of Django
   mini_izleme.py           monitoring state, TCP check
   mermaid_uret.py          Mermaid diagram from the graph
   ornek_log_uret.py        sample log generator
-simulasyon/                Django app (views, templates, web tests)
+simulasyon/                Django app
+  models.py                scenario, device, cable, requirement, rule, denial, simulation history
+  yukle.py                 database <-> engine conversion
+  servis.py                computation and saving to history (shared by web and API)
+  views.py, urls.py        web pages, login/sign-up, history
+  api.py, api_urls.py      REST API
+  admin.py                 scenario editing panel
+  management/commands/     seed_senaryolar command
+  templates/, tests/       templates and tests
 config/                    Django settings
 tests/                     engine tests (pytest)
 ornek_loglar/              normal.log, saldirili.log
@@ -301,7 +375,7 @@ main.py                    command-line interface
 
 ```powershell
 python -m pytest -q          # engine: 60 tests
-python manage.py test        # web interface: 23 tests
+python manage.py test        # web, admin, API, accounts and database: 106 tests
 ```
 
 The tests also verify architectural expectations such as "no central single point of failure in the redundant scenarios", "it breaks when both cores fail", "cable path exists but the policy blocks it" and "no transit through servers".
