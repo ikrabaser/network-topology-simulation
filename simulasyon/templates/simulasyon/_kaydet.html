@@ -1,0 +1,13 @@
+{% if user.is_authenticated %}
+<form method="post" action="{% url 'kaydet' s.slug tur %}" style="margin-top:12px">
+  {% csrf_token %}
+  {% for b in bozuk %}<input type="hidden" name="bozuk" value="{{ b }}">{% endfor %}
+  {% if tur == "erisim" %}
+    <input type="hidden" name="kaynak" value="{{ kaynak }}"><input type="hidden" name="hedef" value="{{ hedef }}">
+    <input type="hidden" name="port" value="{{ port }}">
+  {% endif %}
+  <button type="submit">Geçmişe kaydet</button>
+</form>
+{% else %}
+<p class="not"><a href="{% url 'giris' %}?next={{ request.get_full_path|urlencode }}">Giriş yapın</a> ya da <a href="{% url 'kayit' %}">kayıt olun</a>; sonuçlarınızı geçmişe kaydedebilirsiniz.</p>
+{% endif %}

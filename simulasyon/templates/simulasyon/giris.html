@@ -1,0 +1,12 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}Giriş{% endblock %}
+{% block icerik %}
+<h1>Giriş</h1>
+<form method="post" class="kart hesapform" style="max-width:420px">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button type="submit">Giriş yap</button>
+</form>
+<p class="not">Hesabınız yok mu? <a href="{% url 'kayit' %}">Kayıt olun</a>.</p>
+{% endblock %}

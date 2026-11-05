@@ -1,0 +1,25 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}Geçmişim{% endblock %}
+{% block icerik %}
+<h1>Geçmişim</h1>
+<p class="sekmeler">
+  <a href="{% url 'gecmis' %}" class="{% if not tur %}aktif{% endif %}">Hepsi</a>
+  {% for kod, ad in turler %}<a href="?tur={{ kod }}" class="{% if tur == kod %}aktif{% endif %}">{{ ad }}</a>{% endfor %}
+</p>
+{% if sayfa_nesnesi %}
+<table><tr><th>Zaman</th><th>Tür</th><th>Senaryo</th><th>Özet</th><th></th></tr>
+{% for k in sayfa_nesnesi %}
+  <tr><td>{{ k.zaman|date:"Y-m-d H:i" }}</td><td>{{ k.get_tur_display }}</td>
+  <td>{{ k.senaryo.baslik|default:"-" }}</td><td>{{ k.ozet }}</td>
+  <td><a href="{% url 'gecmis_detay' k.pk %}">aç</a></td></tr>
+{% endfor %}
+</table>
+{% if sayfa_nesnesi.has_other_pages %}
+<p>{% if sayfa_nesnesi.has_previous %}<a href="?sayfa={{ sayfa_nesnesi.previous_page_number }}{% if tur %}&tur={{ tur }}{% endif %}">← önceki</a>{% endif %}
+ Sayfa {{ sayfa_nesnesi.number }}/{{ sayfa_nesnesi.paginator.num_pages }}
+ {% if sayfa_nesnesi.has_next %}<a href="?sayfa={{ sayfa_nesnesi.next_page_number }}{% if tur %}&tur={{ tur }}{% endif %}">sonraki →</a>{% endif %}</p>
+{% endif %}
+{% else %}
+<p class="soluk">Henüz kayıt yok. Bir simülasyon çalıştırıp "Geçmişe kaydet" düğmesine basın; SIEM'de kendi logunuzu analiz ettiğinizde otomatik kaydedilir.</p>
+{% endif %}
+{% endblock %}

@@ -1,6 +1,6 @@
 <div class="sekmeler">
-  <a href="{% url 'senaryo' s.ad %}" class="{% if sayfa == 'senaryo' %}aktif{% endif %}">Topoloji ve tek hata noktaları</a>
-  <a href="{% url 'hata' s.ad %}" class="{% if sayfa == 'hata' %}aktif{% endif %}">Hata simülasyonu</a>
-  <a href="{% url 'erisim' s.ad %}" class="{% if sayfa == 'erisim' %}aktif{% endif %}">VLAN erişim matrisi</a>
-  <a href="{% url 'izleme' s.ad %}" class="{% if sayfa == 'izleme' %}aktif{% endif %}">İzleme</a>
+  <a href="{% url 'senaryo' s.slug %}" class="{% if sayfa == 'senaryo' %}aktif{% endif %}">Topoloji ve tek hata noktaları</a>
+  <a href="{% url 'hata' s.slug %}" class="{% if sayfa == 'hata' %}aktif{% endif %}">Hata simülasyonu</a>
+  <a href="{% url 'erisim' s.slug %}" class="{% if sayfa == 'erisim' %}aktif{% endif %}">VLAN erişim matrisi</a>
+  <a href="{% url 'izleme' s.slug %}" class="{% if sayfa == 'izleme' %}aktif{% endif %}">İzleme</a>
 </div>

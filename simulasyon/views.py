@@ -1,140 +1,136 @@
-"""Django görünümleri: simülasyon motorunu (ag_motoru) web sayfalarına bağlar."""
-from functools import lru_cache
+"""Django görünümleri: veritabanındaki senaryoları web sayfalarına bağlar.
 
+Hesaplamalar `servis` modülündedir; burada sadece istek/yanıt ve yetki işleri var.
+Geçmişe yazılan sonuç her zaman sunucuda yeniden hesaplanır.
+"""
+from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
+from django.core.paginator import Paginator
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
-from ag_motoru import (erisim_matrisi, hata_simulasyonu, mermaid_uret, mini_izleme,
-                       mini_siem, ornek_log_uret)
-from ag_motoru.ag_modelleri import SENARYOLAR, senaryo_al
+from ag_motoru import ornek_log_uret
 
-MAKS_LOG_BAYT = 1_000_000
+from . import models, servis
 
 
-def _senaryo(ad):
+def _senaryo(slug):
     try:
-        return senaryo_al(ad)
-    except KeyError:
+        return servis.senaryo_getir(slug)
+    except models.Senaryo.DoesNotExist:
         raise Http404("Senaryo bulunamadı")
 
 
-@lru_cache(maxsize=None)
-def _ozet(ad):
-    s = senaryo_al(ad)
-    a = hata_simulasyonu.tek_hata_analizi(s)
-    return {"ad": ad, "baslik": s.baslik, "dugum": s.graf.number_of_nodes(),
-            "kablo": s.graf.number_of_edges(), "spof": len(a["spof"]),
-            "yerel": len(a["yerel"]), "gereksinim": len(s.gereksinimler)}
-
-
-def _liste(sonuclar):
-    return [{"cesit": x["cesit"], "eleman": x["eleman"],
-             "etki": hata_simulasyonu.etki_metni(x["etki"])} for x in sonuclar]
-
-
-def _secili_bozuklar(request, senaryo):
-    gecerli = {ad for ad, _, _ in hata_simulasyonu.secilebilir_elemanlar(senaryo)}
-    return [b for b in request.GET.getlist("bozuk") if b in gecerli]
-
-
-def _secici(senaryo, secili):
-    return [{"ad": ad, "etiket": etiket, "cesit": cesit, "secili": ad in secili}
-            for ad, etiket, cesit in hata_simulasyonu.secilebilir_elemanlar(senaryo)]
+def _secici(es, secili):
+    return [{**e, "secili": e["ad"] in secili} for e in servis.secilebilir(es)]
 
 
 def index(request):
-    return render(request, "simulasyon/index.html",
-                  {"ozetler": [_ozet(ad) for ad in SENARYOLAR]})
+    ozetler = []
+    for obj in models.Senaryo.objects.all():
+        try:
+            ozetler.append(servis.ozet(obj, servis.senaryo_yukle(obj)))
+        except Exception:  # yarım düzenlenmiş senaryo ana sayfayı bozmasın
+            ozetler.append({"slug": obj.slug, "baslik": obj.baslik, "bozuk_senaryo": True})
+    return render(request, "simulasyon/index.html", {"ozetler": ozetler})
 
 
-def senaryo_detay(request, ad):
-    s = _senaryo(ad)
-    analiz = hata_simulasyonu.tek_hata_analizi(s)
+def senaryo_detay(request, slug):
+    obj, es = _senaryo(slug)
+    a = servis.analiz(es)
     return render(request, "simulasyon/senaryo.html", {
-        "s": s, "sayfa": "senaryo", "diyagram": mermaid_uret.mermaid(s),
-        "kontrol": analiz["kontrol"], "spof": _liste(analiz["spof"]),
-        "yerel": _liste(analiz["yerel"]), "gereksinimler": s.gereksinimler,
+        "s": obj, "sayfa": "senaryo", "diyagram": servis.diyagram(es), "kontrol": a["kontrol"],
+        "spof": a["spof"], "yerel": a["yerel"], "gereksinimler": servis.gereksinim_listesi(es),
+        "sorunlar": obj.sorunlar(),
     })
 
 
-def hata(request, ad):
-    s = _senaryo(ad)
-    bozuk = _secili_bozuklar(request, s)
-    sonuc = hata_simulasyonu.coklu_hata(s, bozuk) if bozuk else None
-    olu = sonuc["olu"] if sonuc else []
+def hata(request, slug):
+    obj, es = _senaryo(slug)
+    bozuk = servis.bozuklari_ayikla(es, request.GET.getlist("bozuk"))
+    sonuc = servis.hata(es, bozuk) if bozuk else None
     return render(request, "simulasyon/hata.html", {
-        "s": s, "sayfa": "hata", "secici": _secici(s, bozuk), "bozuk": bozuk,
-        "sonuc": sonuc, "olu": olu,
-        "guc_kapanan": [n for n in olu if n not in bozuk],
-        "diyagram": mermaid_uret.mermaid(s, bozuk=bozuk, olu=olu),
+        "s": obj, "sayfa": "hata", "secici": _secici(es, bozuk), "bozuk": bozuk, "sonuc": sonuc,
+        "diyagram": servis.diyagram(es, bozuk=bozuk, olu=sonuc["olu"] if sonuc else ()),
     })
 
 
-def erisim(request, ad):
-    s = _senaryo(ad)
-    zonlar = erisim_matrisi.bolgeler(s)
-    m = erisim_matrisi.matris(s)
-    satirlar = []
-    for k in zonlar:
-        hucreler = []
-        for h in zonlar:
-            durum = m[(k, h)]
-            portlar = ""
-            if durum == "kismi":
-                portlar = ",".join(str(p) for p in sorted(erisim_matrisi.izinli_portlar(s, k, h)))
-            hucreler.append({"durum": durum, "portlar": portlar})
-        satirlar.append({"kaynak": k, "hucreler": hucreler})
-
-    cihazlar = [n for n, d in s.graf.nodes(data=True) if d["bolge"]]
-    sorgu = None
-    hata_mesaji = None
-    kaynak, hedef, port = (request.GET.get("kaynak", ""), request.GET.get("hedef", ""),
-                           request.GET.get("port", "").strip())
+def erisim(request, slug):
+    obj, es = _senaryo(slug)
+    kaynak, hedef = request.GET.get("kaynak", ""), request.GET.get("hedef", "")
+    port = request.GET.get("port", "").strip()
+    sorgu = hata_mesaji = None
     if kaynak and hedef:
-        if kaynak not in cihazlar or hedef not in cihazlar:
-            hata_mesaji = "Geçersiz cihaz seçimi."
-        elif port and not port.isdigit():
-            hata_mesaji = "Port sayı olmalı."
-        else:
-            sorgu = erisim_matrisi.uctan_uca(s, kaynak, hedef, int(port) if port else None)
-
-    ihlaller = erisim_matrisi.engelleri_dogrula(s)
+        try:
+            sorgu = servis.erisim_sorgusu(es, kaynak, hedef, port)
+        except servis.GirdiHatasi as e:
+            hata_mesaji = str(e)
+    tablo = servis.erisim_matrisi_tablosu(es)
     return render(request, "simulasyon/erisim.html", {
-        "s": s, "sayfa": "erisim", "zonlar": zonlar, "satirlar": satirlar,
-        "engeller": s.engeller, "ihlaller": ihlaller, "cihazlar": cihazlar,
-        "kaynak": kaynak, "hedef": hedef, "port": port, "sorgu": sorgu,
-        "hata_mesaji": hata_mesaji,
+        "s": obj, "sayfa": "erisim", **tablo, "cihazlar": servis.erisim_cihazlari(es),
+        "kaynak": kaynak, "hedef": hedef, "port": port, "sorgu": sorgu, "hata_mesaji": hata_mesaji,
     })
 
 
-def izleme(request, ad):
-    s = _senaryo(ad)
-    bozuk = _secili_bozuklar(request, s)
-    durumlar = mini_izleme.ag_izleme(s, bozuk)
-    up = sum(1 for d in durumlar.values() if d == mini_izleme.UP)
+def izleme(request, slug):
+    obj, es = _senaryo(slug)
+    bozuk = servis.bozuklari_ayikla(es, request.GET.getlist("bozuk"))
     return render(request, "simulasyon/izleme.html", {
-        "s": s, "sayfa": "izleme", "secici": _secici(s, bozuk), "bozuk": bozuk,
-        "durumlar": [{"ad": n, "etiket": s.graf.nodes[n]["etiket"], "durum": d,
-                      "ok": d == mini_izleme.UP} for n, d in durumlar.items()],
-        "up": up, "toplam": len(durumlar), "izleyici": s.izleme_dugumu,
+        "s": obj, "sayfa": "izleme", "secici": _secici(es, bozuk), "bozuk": bozuk,
+        **{k: v for k, v in servis.izleme(es, bozuk).items() if k != "bozuk"},
     })
+
+
+@login_required
+@require_POST
+def kaydet(request, slug, tur):
+    """Geçmişe kaydet: girdiyi formdan al, sonucu sunucuda yeniden hesapla."""
+    obj, es = _senaryo(slug)
+    if tur == models.Simulasyon.HATA:
+        bozuk = servis.bozuklari_ayikla(es, request.POST.getlist("bozuk"))
+        if not bozuk:
+            messages.error(request, "Kaydetmek için en az bir eleman seçin.")
+            return redirect("hata", slug=slug)
+        sonuc = servis.hata(es, bozuk)
+        k = servis.kaydet(request.user, obj, tur, {"bozuk": bozuk}, sonuc, servis.hata_ozeti(sonuc))
+    elif tur == models.Simulasyon.IZLEME:
+        bozuk = servis.bozuklari_ayikla(es, request.POST.getlist("bozuk"))
+        sonuc = servis.izleme(es, bozuk)
+        k = servis.kaydet(request.user, obj, tur, {"bozuk": bozuk}, sonuc, servis.izleme_ozeti(sonuc))
+    elif tur == models.Simulasyon.ERISIM:
+        girdi = {"kaynak": request.POST.get("kaynak", ""), "hedef": request.POST.get("hedef", ""),
+                 "port": request.POST.get("port", "").strip()}
+        try:
+            sonuc = servis.erisim_sorgusu(es, **girdi)
+        except servis.GirdiHatasi as e:
+            messages.error(request, str(e))
+            return redirect("erisim", slug=slug)
+        k = servis.kaydet(request.user, obj, tur, girdi, sonuc, servis.erisim_ozeti(sonuc))
+    else:
+        raise Http404("Bilinmeyen simülasyon türü")
+    messages.success(request, "Geçmişe kaydedildi.")
+    return redirect("gecmis_detay", pk=k.pk)
 
 
 def siem(request):
-    log, hata_mesaji, kaynak_adi = "", None, ""
+    log, hata_mesaji, kaynak_adi, durum = "", None, "", 200
+    kaydedilen = None
     if request.method == "POST":
-        yuklenen = request.FILES.get("dosya")
-        if yuklenen:
-            if yuklenen.size > MAKS_LOG_BAYT:
-                hata_mesaji = "Dosya en fazla 1 MB olabilir."
-            else:
-                log = yuklenen.read().decode("utf-8", errors="replace")
-                kaynak_adi = yuklenen.name
+        if not request.user.is_authenticated:
+            hata_mesaji, durum = "Kendi logunuzu analiz etmek için giriş yapın.", 403
         else:
-            log = request.POST.get("log", "")
-            kaynak_adi = "yapıştırılan metin"
-            if len(log.encode("utf-8")) > MAKS_LOG_BAYT:
-                hata_mesaji, log = "Metin en fazla 1 MB olabilir.", ""
+            yuklenen = request.FILES.get("dosya")
+            if yuklenen:
+                if yuklenen.size > servis.MAKS_LOG_BAYT:
+                    hata_mesaji = "Dosya en fazla 1 MB olabilir."
+                else:
+                    log = yuklenen.read().decode("utf-8", errors="replace")
+                    kaynak_adi = yuklenen.name
+            else:
+                log, kaynak_adi = request.POST.get("log", ""), "yapıştırılan metin"
     elif request.GET.get("ornek") in ("saldirili", "normal"):
         ornek = request.GET["ornek"]
         log = "\n".join(ornek_log_uret.uret(saldiri=ornek == "saldirili"))
@@ -142,12 +138,55 @@ def siem(request):
 
     rapor = None
     if log.strip() and not hata_mesaji:
-        olaylar, hatali = mini_siem.olaylari_oku(log.splitlines())
-        alarmlar = mini_siem.analiz_et(olaylar)
-        rapor = {"kaynak": kaynak_adi, "olay": len(olaylar), "hatali": hatali,
-                 "alarmlar": [{"seviye": a.seviye, "kural": a.kural, "aciklama": a.aciklama,
-                               "zaman": a.zaman, "kanit": len(a.kanit)} for a in alarmlar]}
+        try:
+            rapor = servis.siem(log, kaynak_adi)
+        except servis.GirdiHatasi as e:
+            hata_mesaji, log = str(e).replace("Log", "Metin"), ""
+    if rapor and request.method == "POST":
+        kaydedilen = servis.kaydet(
+            request.user, None, models.Simulasyon.SIEM,
+            {"kaynak": kaynak_adi, "satir": len(log.splitlines())}, rapor, servis.siem_ozeti(rapor))
     return render(request, "simulasyon/siem.html", {
-        "rapor": rapor, "hata_mesaji": hata_mesaji, "sayfa": "siem",
+        "rapor": rapor, "hata_mesaji": hata_mesaji, "sayfa": "siem", "kaydedilen": kaydedilen,
         "log_onizleme": "\n".join(log.splitlines()[:200]) if rapor else "",
-    })
+    }, status=durum)
+
+
+# ---- hesap ---------------------------------------------------------------------------------
+
+def kayit(request):
+    if request.user.is_authenticated:
+        return redirect("index")
+    form = UserCreationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        login(request, form.save())
+        return redirect("index")
+    return render(request, "simulasyon/kayit.html", {"form": form})
+
+
+# ---- geçmiş --------------------------------------------------------------------------------
+
+@login_required
+def gecmis(request):
+    kayitlar = models.Simulasyon.objects.filter(kullanici=request.user).select_related("senaryo")
+    tur = request.GET.get("tur", "")
+    if tur in dict(models.Simulasyon.TURLER):
+        kayitlar = kayitlar.filter(tur=tur)
+    sayfa = Paginator(kayitlar, 20).get_page(request.GET.get("sayfa"))
+    return render(request, "simulasyon/gecmis.html", {
+        "sayfa_nesnesi": sayfa, "turler": models.Simulasyon.TURLER, "tur": tur})
+
+
+@login_required
+def gecmis_detay(request, pk):
+    k = get_object_or_404(models.Simulasyon, pk=pk, kullanici=request.user)
+    return render(request, "simulasyon/gecmis_detay.html", {"k": k, "sonuc": k.sonuc, "girdi": k.girdi})
+
+
+@login_required
+@require_POST
+def gecmis_sil(request, pk):
+    k = get_object_or_404(models.Simulasyon, pk=pk, kullanici=request.user)
+    k.delete()
+    messages.success(request, "Kayıt silindi.")
+    return redirect("gecmis")

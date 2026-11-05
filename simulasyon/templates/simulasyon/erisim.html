@@ -43,5 +43,6 @@
     <tr><th>Politika izni</th><td>{% if sorgu.politika_izni %}<span class="iyi">VAR</span>{% else %}<span class="kotu">YOK</span>{% endif %}</td></tr>
     <tr><th>Sonuç</th><td>{% if sorgu.sonuc %}<strong class="iyi">İZİN</strong>{% else %}<strong class="kotu">ENGEL</strong>{% endif %}</td></tr>
   </table>
+  {% include "simulasyon/_kaydet.html" with tur="erisim" %}
 {% endif %}
 {% endblock %}

@@ -3,6 +3,8 @@
 {% block icerik %}
 <h1>{{ s.baslik }}</h1>
 {% include "simulasyon/_sekmeler.html" %}
+{% if sorunlar %}<div class="kart" style="margin-bottom:14px"><span class="rozet uyari">Senaryoda tutarsızlık var</span>
+<ul>{% for x in sorunlar %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
 {% include "simulasyon/_mermaid.html" %}
 
 <h2>Tek hata noktası analizi</h2>

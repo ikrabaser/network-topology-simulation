@@ -14,4 +14,5 @@ onların arkasında kalıp ulaşılamayan cihazlar alarm üretir.</p>
   <td>{% if d.ok %}<span class="rozet iyi">UP</span>{% else %}<span class="rozet kotu">{{ d.durum }}</span>{% endif %}</td></tr>
 {% endfor %}
 </table>
+{% include "simulasyon/_kaydet.html" with tur="izleme" %}
 {% endblock %}

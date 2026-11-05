@@ -16,7 +16,8 @@
   {% else %}
     <p><span class="rozet iyi">Tüm gereksinimler karşılanıyor</span> — yedeklilik çalışıyor.</p>
   {% endif %}
-  {% if guc_kapanan %}<p class="not">Güç kaynağı kesildiği için kapanan cihazlar: {{ guc_kapanan|join:", " }}</p>{% endif %}
+  {% if sonuc.guc_kapanan %}<p class="not">Güç kaynağı kesildiği için kapanan cihazlar: {{ sonuc.guc_kapanan|join:", " }}</p>{% endif %}
+  {% include "simulasyon/_kaydet.html" with tur="hata" %}
 {% else %}
   <p class="soluk">Bir ya da birkaç cihaz seçin. Örneğin hastane senaryosunda <code>core_1</code> tek başına bozulunca hiçbir şey kopmaz,
   <code>core_1</code> ve <code>core_2</code> birlikte bozulunca sunucu odasına erişim kopar.</p>

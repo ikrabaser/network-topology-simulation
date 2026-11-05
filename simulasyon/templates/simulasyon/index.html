@@ -6,12 +6,22 @@ VLAN kurallarını ve log analizini deneyebilirsiniz.</p>
 <div class="izgara">
 {% for o in ozetler %}
   <div class="kart">
-    <h2 style="margin-top:0"><a href="{% url 'senaryo' o.ad %}">{{ o.baslik }}</a></h2>
+    <h2 style="margin-top:0"><a href="{% url 'senaryo' o.slug %}">{{ o.baslik }}</a></h2>
+    {% if o.bozuk_senaryo %}
+    <p class="kotu">Bu senaryo analiz edilemedi; admin panelinden kontrol edin.</p>
+    {% else %}
     <p>{{ o.dugum }} düğüm, {{ o.kablo }} kablo, {{ o.gereksinim }} gereksinim</p>
     <p>Merkezi tek hata noktası:
       {% if o.spof %}<span class="rozet kotu">{{ o.spof }}</span>{% else %}<span class="rozet iyi">yok</span>{% endif %}
     </p>
     <p class="not">Erişim katmanı (yerel etki): {{ o.yerel }}</p>
+    {% endif %}
+  </div>
+{% empty %}
+  <div class="kart">
+    <p><strong>Veritabanında senaryo yok.</strong></p>
+    <p>Yerleşik dört senaryoyu yüklemek için: <code>python manage.py seed_senaryolar</code></p>
+    <p class="not">Ya da yönetici hesabıyla <a href="/admin/simulasyon/senaryo/add/">admin panelinden</a> kendi senaryonuzu ekleyin.</p>
   </div>
 {% endfor %}
 </div>

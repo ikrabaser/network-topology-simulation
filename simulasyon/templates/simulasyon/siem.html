@@ -5,6 +5,10 @@
 <p class="soluk">Log satırlarını okur, olayları ilişkilendirir ve alarm üretir. Satır biçimi:
 <code>2026-11-05T03:12:44 fw_1 AUTH FAIL user=admin src=203.0.113.50</code></p>
 <p>Örnek log ile dene: <a href="?ornek=saldirili">saldırılı</a> · <a href="?ornek=normal">normal gün</a></p>
+{% if not user.is_authenticated %}
+<p class="not">Kendi logunuzu yapıştırıp analiz etmek için <a href="{% url 'giris' %}?next={{ request.path|urlencode }}">giriş yapın</a>.
+Örnek loglar giriş gerektirmez.</p>
+{% endif %}
 <form method="post" enctype="multipart/form-data" class="kart">
   {% csrf_token %}
   <p><textarea name="log" placeholder="Log satırlarını buraya yapıştırın"></textarea></p>
@@ -18,9 +22,10 @@
   <table><tr><th>Seviye</th><th>Zaman</th><th>Kural</th><th>Açıklama</th><th>Kanıt</th></tr>
   {% for a in rapor.alarmlar %}
     <tr><td><span class="rozet {% if a.seviye == 'KRITIK' %}kotu{% else %}uyari{% endif %}">{{ a.seviye }}</span></td>
-    <td>{{ a.zaman|date:"Y-m-d H:i:s" }}</td><td><code>{{ a.kural }}</code></td><td>{{ a.aciklama }}</td><td>{{ a.kanit }} olay</td></tr>
+    <td>{{ a.zaman }}</td><td><code>{{ a.kural }}</code></td><td>{{ a.aciklama }}</td><td>{{ a.kanit }} olay</td></tr>
   {% endfor %}</table>
   {% else %}<p><span class="rozet iyi">Alarm yok</span></p>{% endif %}
+  {% if kaydedilen %}<p class="not">Analiz geçmişe kaydedildi: <a href="{% url 'gecmis_detay' kaydedilen.pk %}">kaydı aç</a></p>{% endif %}
   <details><summary>Analiz edilen log (ilk 200 satır)</summary><pre>{{ log_onizleme }}</pre></details>
 {% endif %}
 {% endblock %}

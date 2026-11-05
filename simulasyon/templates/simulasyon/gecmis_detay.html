@@ -1,0 +1,41 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}Kayıt: {{ k.ozet }}{% endblock %}
+{% block icerik %}
+<h1>{{ k.get_tur_display }}</h1>
+<p class="soluk">{{ k.zaman|date:"Y-m-d H:i" }}{% if k.senaryo %} · {{ k.senaryo.baslik }}{% endif %}</p>
+<p><strong>{{ k.ozet }}</strong></p>
+
+{% if k.tur == "hata" %}
+  <p>Bozulan: <code>{{ girdi.bozuk|join:", " }}</code></p>
+  {% if sonuc.kopan %}
+    <table><tr><th>Kaynak</th><th>Hedef</th><th>Açıklama</th></tr>
+    {% for r in sonuc.kopan %}<tr><td><code>{{ r.kaynak }}</code></td><td><code>{{ r.hedefler|join:", " }}</code></td><td>{{ r.aciklama }}</td></tr>{% endfor %}</table>
+  {% else %}<p><span class="rozet iyi">Tüm gereksinimler karşılanıyordu</span></p>{% endif %}
+  {% if sonuc.guc_kapanan %}<p class="not">Güç kesintisiyle kapanan: {{ sonuc.guc_kapanan|join:", " }}</p>{% endif %}
+{% elif k.tur == "izleme" %}
+  <p>{{ sonuc.up }}/{{ sonuc.toplam }} cihaz UP{% if girdi.bozuk %} · bozulan: <code>{{ girdi.bozuk|join:", " }}</code>{% endif %}</p>
+  <table><tr><th>Cihaz</th><th>Ad</th><th>Durum</th></tr>
+  {% for d in sonuc.durumlar %}<tr><td><code>{{ d.ad }}</code></td><td>{{ d.etiket }}</td>
+  <td>{% if d.ok %}<span class="rozet iyi">UP</span>{% else %}<span class="rozet kotu">{{ d.durum }}</span>{% endif %}</td></tr>{% endfor %}</table>
+{% elif k.tur == "erisim" %}
+  <table>
+    <tr><th>Sorgu</th><td><code>{{ sonuc.kaynak }}</code> ({{ sonuc.kaynak_bolge }}) → <code>{{ sonuc.hedef }}</code> ({{ sonuc.hedef_bolge }}){% if sonuc.port %} port {{ sonuc.port }}{% endif %}</td></tr>
+    <tr><th>Fiziksel yol</th><td>{% if sonuc.fiziksel_yol %}<span class="iyi">VAR</span>{% else %}<span class="kotu">YOK</span>{% endif %}</td></tr>
+    <tr><th>Politika izni</th><td>{% if sonuc.politika_izni %}<span class="iyi">VAR</span>{% else %}<span class="kotu">YOK</span>{% endif %}</td></tr>
+    <tr><th>Sonuç</th><td>{% if sonuc.sonuc %}<strong class="iyi">İZİN</strong>{% else %}<strong class="kotu">ENGEL</strong>{% endif %}</td></tr>
+  </table>
+{% elif k.tur == "siem" %}
+  <p>Kaynak: {{ sonuc.kaynak }} · {{ sonuc.olay }} olay{% if sonuc.hatali %}, {{ sonuc.hatali }} satır okunamadı{% endif %}</p>
+  {% if sonuc.alarmlar %}
+  <table><tr><th>Seviye</th><th>Zaman</th><th>Kural</th><th>Açıklama</th><th>Kanıt</th></tr>
+  {% for a in sonuc.alarmlar %}<tr><td><span class="rozet {% if a.seviye == 'KRITIK' %}kotu{% else %}uyari{% endif %}">{{ a.seviye }}</span></td>
+  <td>{{ a.zaman }}</td><td><code>{{ a.kural }}</code></td><td>{{ a.aciklama }}</td><td>{{ a.kanit }} olay</td></tr>{% endfor %}</table>
+  {% else %}<p><span class="rozet iyi">Alarm yok</span></p>{% endif %}
+{% endif %}
+
+<form method="post" action="{% url 'gecmis_sil' k.pk %}" style="margin-top:16px">
+  {% csrf_token %}
+  <a href="{% url 'gecmis' %}">← Geçmişe dön</a>
+  <button type="submit" class="ikincil" style="margin-left:12px">Kaydı sil</button>
+</form>
+{% endblock %}
