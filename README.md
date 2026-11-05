@@ -8,6 +8,7 @@ Ağ mimarilerini (ofis, e-ticaret, üniversite, hastane) **graf olarak modelleye
 - **VLAN erişim matrisi:** hangi bölge hangi bölgeye hangi portla erişebilir? Varsayılan red mantığıyla.
 - **Mini SIEM:** farklı cihazların loglarını okur, olayları ilişkilendirir, alarm üretir.
 - **Mini izleme:** Zabbix mantığıyla, izleme düğümü her cihaza ulaşabiliyor mu?
+- **Alarm yönetimi:** kök neden bastırma, dalgalanma (flapping) tespiti, histerezis ve arıza geçmişi.
 - **Django web arayüzü:** hepsini tarayıcıdan dener, diyagramı çizer, bozulan cihazı kırmızı gösterir.
 - **Veritabanı ve admin paneli:** topoloji, kablolar, gereksinimler, VLAN kuralları SQLite'ta tutulur; admin panelinden düzenlenir, yeni senaryo eklenir.
 - **Hesaplar ve geçmiş:** kayıt/giriş vardır; çalıştırılan simülasyonlar kullanıcıya özel geçmişe kaydedilir.
@@ -36,6 +37,7 @@ flowchart LR
         hata["hata_simulasyonu<br/>hata ve tek hata noktası"]
         erisim["erisim_matrisi<br/>VLAN kuralları"]
         izleme["mini_izleme<br/>cihaz durumu"]
+        alarm["alarm_yonetimi<br/>kök neden, dalgalanma, arıza"]
         diyagram["mermaid_uret<br/>diyagram üretimi"]
         siem["mini_siem<br/>log korelasyonu"]
         loglar["ornek_log_uret<br/>örnek loglar"]
@@ -43,6 +45,7 @@ flowchart LR
     modeller --> hata
     hata --> erisim
     hata --> izleme
+    izleme --> alarm
     modeller --> diyagram
     loglar -.-> siem
     cli --> modeller
@@ -83,7 +86,7 @@ python manage.py migrate
 python manage.py seed_senaryolar
 ```
 
-`POSTGRES_HOST` (varsayılan `localhost`) ve `POSTGRES_PORT` (varsayılan `5432`) de okunur. `POSTGRES_DB` tanımlı değilse SQLite kullanılır. 106 Django testi her iki veritabanında da geçer; PostgreSQL ile çalıştırmak için aynı ortam değişkenlerini verip `python manage.py test` çalıştırın (kullanıcının veritabanı oluşturma yetkisi olmalı).
+`POSTGRES_HOST` (varsayılan `localhost`) ve `POSTGRES_PORT` (varsayılan `5432`) de okunur. `POSTGRES_DB` tanımlı değilse SQLite kullanılır. 142 Django testi her iki veritabanında da geçer; PostgreSQL ile çalıştırmak için aynı ortam değişkenlerini verip `python manage.py test` çalıştırın (kullanıcının veritabanı oluşturma yetkisi olmalı).
 
 ## Web arayüzü
 
@@ -93,7 +96,9 @@ python manage.py seed_senaryolar
 | `/senaryo/<kisa-ad>/` | Topoloji diyagramı, tek hata noktası tablosu, gereksinimler |
 | `/senaryo/<kisa-ad>/hata/` | Cihaz/güç kaynağı seç, bozulunca ne koptuğunu gör; bozulanlar diyagramda kırmızı |
 | `/senaryo/<kisa-ad>/erisim/` | VLAN matrisi, beklenen engellerin doğrulaması, uçtan uca sorgu |
-| `/senaryo/<kisa-ad>/izleme/` | İzleme düğümü gözüyle cihaz durumları |
+| `/senaryo/<kisa-ad>/izleme/` | İzleme düğümü gözüyle cihaz durumları; kök neden ve bastırılan belirtiler |
+| `/senaryo/<kisa-ad>/zaman/` | Zaman içinde alarm akışı: desen, histerezis, dalgalanma, bildirimler, olaylar |
+| `/ariza/` | Kayıtlı arıza geçmişi: süre, açık arızalar, erişilebilirlik (giriş gerekir) |
 | `/siem/` | Log yapıştır ya da yükle, alarmları gör (örnek loglar giriş gerektirmez; kendi logunuz için giriş gerekir) |
 | `/gecmis/` | Giriş yapan kullanıcının kayıtlı simülasyonları |
 | `/hesap/giris/`, `/hesap/kayit/` | Giriş ve kayıt |
@@ -119,6 +124,28 @@ Hastane senaryosunda `core_1` tek başına bozulunca hiçbir gereksinim kopmaz; 
 Saldırılı örnek log: 212 olay, 5 alarm.
 
 ![SIEM sayfası: örnek saldırılı log için 5 alarm](docs/img/siem-raporu.png)
+
+## Alarm yönetimi
+
+Gerçek izleme sistemlerinin üç temel özelliği: **kök neden bastırma**, **dalgalanma (flapping) tespiti** ve **arıza geçmişi**. Zaman kontrol sayısıyla ölçülür; bir desen dizisi (`1` = bozuk, `0` = sağlam) her kontrolde seçilen elemanların bozuk olup olmadığını söyler.
+
+![Alarm akışı sayfası: core_1 için 0111110111 deseni, ham alarm, bildirim ve olay sayıları](docs/img/alarm-akisi.png)
+
+- **Bağımlılık bastırma:** `core_1` düşünce arkasındaki 21 cihaz da ulaşılamaz olur. Hepsi için alarm vermek yerine yalnızca kök neden (`core_1`) bildirilir; diğerleri "belirti" sayılıp bastırılır. Bir cihazın üst bağlantılarının hepsi bozuksa belirtidir, en az biri sağlamsa kök nedendir (çift hatlı hastanede `core_1` ve `core_2` birlikte düşünce iki kök neden çıkar, 30'ar belirti bastırılır).
+- **Histerezis:** bir kontrol başarısız olunca hemen alarm verilmez; ardışık `deneme` (varsayılan 3) kontrol başarısız olursa alarm onaylanır. Tek seferlik kayıplar "geçici" sayılıp elenir.
+- **Dalgalanma:** son `pencere` (10) kontrolde durumu `esik` (3) ya da daha fazla kez değişen cihaz dalgalı sayılır. Kök nedenin dalgalanması tek bir `DALGALANMA` bildirimine indirilir; her iniş çıkış için ayrı alarm gitmez.
+- **Bildirim akışı:** `ALARM`, `KURTARMA`, `DALGALANMA`. Ofiste `core_1` için `0111110111` deseni 44 ham alarmı 3 bildirime indirir.
+
+![Kök neden görünümü: ofiste core_1 bozulunca 1 kök neden, 21 cihaz bastırıldı](docs/img/izleme-kok-neden.png)
+
+Onaylanan arızalar (olaylar) giriş yapan kullanıcı için `Ariza` kaydı olarak saklanır: cihaz, başlangıç, süre, açık/kapalı, kök neden mi, dalgalı mı. `/ariza/` sayfası cihaz başına arıza sayısını, toplam süreyi, ortalama onarım süresini, açık ve dalgalı olay sayısını gösterir. Varsayılan görünüm yalnızca kök nedenleri listeler; "Belirtileri de göster" ile bastırılan cihazlar da görünür.
+
+![Arıza geçmişi sayfası: cihaz bazında arıza sayısı, süre ve erişilebilirlik](docs/img/ariza-gecmisi.png)
+
+```powershell
+python main.py alarm ofis --bozuk core_1 --desen 0111110111
+python main.py alarm ofis --bozuk core_1 --desen 0111110111 --deneme 2 --pencere 8 --esik 2 --aralik 30
+```
 
 ## Veritabanı ve admin paneli
 
@@ -149,7 +176,9 @@ Okuma ve hesaplama uçları herkese açıktır; sonucu kaydetmek, SIEM analizi v
 | `/api/senaryolar/<kisa-ad>/hata/?bozuk=core_1&bozuk=core_2` | hata simülasyonu | aynı hesap + geçmişe kaydet (giriş) |
 | `/api/senaryolar/<kisa-ad>/izleme/?bozuk=...` | izleme durumları | aynı + kaydet (giriş) |
 | `/api/senaryolar/<kisa-ad>/erisim/` | VLAN matrisi; `?kaynak=&hedef=&port=` ile uçtan uca sorgu | sorgu + kaydet (giriş) |
+| `/api/senaryolar/<kisa-ad>/zaman/?bozuk=core_1&desen=0111110111` | alarm akışı (`deneme`, `pencere`, `esik`, `aralik`) | aynı + kaydet (giriş); onaylı arızalar `Ariza` olur |
 | `/api/siem/` | | `{"log": "..."}` analiz + kaydet (giriş) |
+| `/api/ariza/`, `/api/ariza/ozet/` | kendi arızaların (`?senaryo=`, `?cihaz=`, `?acik=1`, `?belirti=1`) ve cihaz başına özet | |
 | `/api/gecmis/`, `/api/gecmis/<id>/` | kendi kayıtların (`?tur=hata`) | DELETE ile silme |
 
 Bilinmeyen cihaz adı ya da geçersiz port `400` döner; bilinmeyen senaryo `404`.
@@ -173,7 +202,8 @@ python main.py hata hastane --bozuk core_1,core_2    # birden fazla hatayı ayn�
 python main.py erisim universite                     # VLAN matrisi
 python main.py erisim universite --sorgu ogrenci_cihazi ogrenci_isleri_db 3306
 python main.py siem ornek_loglar/saldirili.log
-python main.py izleme ofis --bozuk core_1
+python main.py izleme ofis --bozuk core_1            # kök neden ve bastırılan belirtiler
+python main.py alarm ofis --bozuk core_1 --desen 0111110111   # zaman içinde alarm akışı
 python main.py diyagram > docs/topolojiler.md        # Mermaid diyagramları
 python main.py log-uret                              # örnek logları yeniden üret
 ```
@@ -327,6 +357,18 @@ sequenceDiagram
 
 İzleme düğümü (`zabbix`) her cihaza ulaşmayı dener. Durumlar: `UP`, `ARIZALI`, `GÜÇSÜZ`, `ULAŞILAMIYOR`, `İZLEME KAPALI`. Ayrıca `tcp_kontrol(host, port)` gerçek bir TCP bağlantısı dener (ping yönetici yetkisi istediği için TCP kullanılır).
 
+### 8. Alarm yönetimi
+
+Eleman durumları `mini_izleme` ile hesaplanır; `alarm_yonetimi` bunun üstüne zaman ve ilişki ekler.
+
+1. **Üst düğümler.** İzleme düğümünden BFS ile her cihazın seviyesi bulunur. Bir cihazın üstü, bir seviye yakındaki ve geçiş yapabilen (router, firewall, core, switch, ap, hat) komşularıdır.
+2. **Kök neden.** `UP` olmayan bir cihazın üstü yoksa ya da üstlerinden en az biri `UP` ise kök nedendir (`kok_mu = not ust or any(u sağlam)`). Tüm üstleri de bozuksa belirtidir ve bastırılır.
+3. **Histerezis.** Her cihaz için ardışık başarısız kontrol sayısı tutulur; `deneme`'ye ulaşınca olay onaylanır.
+4. **Dalgalanma.** Son `pencere` kontrolde 0/1 geçişleri sayılır; `esik` aşılırsa dalgalıdır.
+5. **Arıza kaydı.** Her olay başlangıç, bitiş ve süre (`sure * aralik_sn`) ile tutulur; bitiş yoksa arıza hâlâ açıktır.
+
+Zaman gerçek saat değil kontrol sayısıdır; saniye karşılığı `aralik_sn` ile verilir.
+
 ## Bulgular
 
 Dört senaryoda her şey tek tek bozulunca çıkan sonuçlar:
@@ -352,6 +394,7 @@ Güç tarafı: `ofis(jenerator=False)` ile jeneratörsüz ofis kurulursa `sebeke
 - Sunucu yedekliliği sadece gereksinimde birden fazla hedef (küme) listelenmişse ölçülür (hastanede HBYS/PACS). Tek hedefli sunucu (örn. e-ticaretteki `veritabani`) bozulursa bu bir tasarım hatası olarak raporlanmaz.
 - Güç modeli "kaynaklardan biri yeter" mantığındadır; UPS'in dayanma süresi, ATS gecikmesi gibi zaman boyutu yoktur.
 - VLAN politikası bölge düzeyindedir; cihaz bazında kural yoktur.
+- Alarm yönetiminde zaman kontrol sayısıdır, gerçek saat değildir; bozulma deseni elle verilir, gerçek bir ağdan ölçüm alınmaz. Kök neden, topolojideki yakınlığa göre bulunur; ağdaki yönlendirme protokolleri modellenmez.
 - SIEM eşikleri örnek değerlerdir, gerçek bir ağın trafiğine göre ayarlanmalıdır.
 - Web arayüzü ve API yerel kullanım içindir: `SECRET_KEY` geliştirme anahtarıdır, herkes kayıt olabilir, HTTP Basic kimlik bilgisi şifrelenmeden gider ve istek sınırlaması yoktur. Başka bir ortamda `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=0` ve `ALLOWED_HOSTS` ayarlarıyla, HTTPS arkasında çalıştırın.
 - Komut satırı veritabanındaki senaryoları değil, kodla yazılmış dört senaryoyu kullanır; admin panelinde yapılan düzenleme komut satırına yansımaz.
@@ -365,12 +408,13 @@ ag_motoru/                 Django'dan bağımsız simülasyon motoru
   erisim_matrisi.py        VLAN matrisi, uçtan uca sorgu
   mini_siem.py             log ayrıştırma, korelasyon, alarm
   mini_izleme.py           izleme durumu, TCP kontrolü
+  alarm_yonetimi.py        kök neden bastırma, histerezis, dalgalanma, arıza olayları
   mermaid_uret.py          graftan Mermaid diyagramı
   ornek_log_uret.py        örnek log üretici
 requirements-postgres.txt  PostgreSQL sürücüsü (isteğe bağlı)
 docker-compose.yml         yerel PostgreSQL
 simulasyon/                Django uygulaması
-  models.py                senaryo, cihaz, kablo, gereksinim, kural, engel, simülasyon geçmişi
+  models.py                senaryo, cihaz, kablo, gereksinim, kural, engel, simülasyon geçmişi, arıza kaydı
   yukle.py                 veritabanı <-> motor dönüşümü
   servis.py                hesaplama ve geçmişe kayıt (web ve API ortak kullanır)
   views.py, urls.py        web sayfaları, giriş/kayıt, geçmiş
@@ -389,8 +433,8 @@ main.py                    komut satırı arayüzü
 ## Testler
 
 ```powershell
-python -m pytest -q          # motor: 60 test
-python manage.py test        # web, admin, API, hesap ve veritabanı: 106 test
+python -m pytest -q          # motor: 104 test
+python manage.py test        # web, admin, API, hesap ve veritabanı: 142 test
 ```
 
 Testler ayrıca "yedekli senaryoda merkezi tek hata noktası yok", "iki core birden düşünce kopar", "kablo yolu var ama politika engeller", "sunucu içinden geçiş yok" gibi mimari beklentileri doğrular.

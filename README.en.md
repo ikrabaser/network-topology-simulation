@@ -8,6 +8,7 @@ A Python project that **models network architectures as graphs** (office, e-comm
 - **VLAN access matrix:** which zone can reach which zone, on which ports? Default-deny logic.
 - **Mini SIEM:** reads logs from different devices, correlates events and raises alarms.
 - **Mini monitoring:** Zabbix-style check of whether the monitoring node can reach every device.
+- **Alarm management:** root-cause suppression, flapping detection, hysteresis and failure history.
 - **Django web interface:** try everything in the browser, see the diagram with failed devices marked in red.
 - **Database and admin panel:** topology, cables, requirements and VLAN rules are stored in SQLite; edit them or add new scenarios in the admin panel.
 - **Accounts and history:** sign-up and login; the simulations you run are saved to a per-user history.
@@ -38,6 +39,7 @@ flowchart LR
         hata["hata_simulasyonu<br/>failures and SPOF analysis"]
         erisim["erisim_matrisi<br/>VLAN rules"]
         izleme["mini_izleme<br/>device status"]
+        alarm["alarm_yonetimi<br/>root cause, flapping, incidents"]
         diyagram["mermaid_uret<br/>diagram generation"]
         siem["mini_siem<br/>log correlation"]
         loglar["ornek_log_uret<br/>sample logs"]
@@ -45,6 +47,7 @@ flowchart LR
     modeller --> hata
     hata --> erisim
     hata --> izleme
+    izleme --> alarm
     modeller --> diyagram
     loglar -.-> siem
     cli --> modeller
@@ -85,7 +88,7 @@ python manage.py migrate
 python manage.py seed_senaryolar
 ```
 
-`POSTGRES_HOST` (default `localhost`) and `POSTGRES_PORT` (default `5432`) are also read. SQLite is used when `POSTGRES_DB` is not set. The 106 Django tests pass on both databases; to run them on PostgreSQL, set the same environment variables and run `python manage.py test` (the user needs permission to create databases).
+`POSTGRES_HOST` (default `localhost`) and `POSTGRES_PORT` (default `5432`) are also read. SQLite is used when `POSTGRES_DB` is not set. The 142 Django tests pass on both databases; to run them on PostgreSQL, set the same environment variables and run `python manage.py test` (the user needs permission to create databases).
 
 ## Web interface
 
@@ -95,7 +98,9 @@ python manage.py seed_senaryolar
 | `/senaryo/<slug>/` | Topology diagram, single-point-of-failure table, requirements |
 | `/senaryo/<slug>/hata/` | Pick devices or power sources, see what breaks; failed devices turn red in the diagram |
 | `/senaryo/<slug>/erisim/` | VLAN matrix, verification of the expected denials, end-to-end query |
-| `/senaryo/<slug>/izleme/` | Device states as seen by the monitoring node |
+| `/senaryo/<slug>/izleme/` | Device states as seen by the monitoring node; root cause and suppressed symptoms |
+| `/senaryo/<slug>/zaman/` | Alarm flow over time: pattern, hysteresis, flapping, notifications, incidents |
+| `/ariza/` | Saved failure history: durations, open incidents, repair times (login required) |
 | `/siem/` | Paste or upload logs, see alarms (sample logs need no login; your own logs require login) |
 | `/gecmis/` | The signed-in user's saved simulations |
 | `/hesap/giris/`, `/hesap/kayit/` | Login and sign-up |
@@ -121,6 +126,28 @@ There is a cable path from a student device to the student-affairs database, but
 Sample attack log: 212 events, 5 alarms.
 
 ![SIEM page: 5 alarms for the sample attack log](docs/img/siem-raporu.png)
+
+## Alarm management
+
+Three core features of real monitoring systems: **root-cause suppression**, **flapping detection** and **failure history**. Time is measured in checks; a pattern string (`1` = failed, `0` = healthy) says whether the chosen elements are down at each check.
+
+![Alarm flow page: pattern 0111110111 for core_1 with raw alarms, notifications and incidents](docs/img/alarm-akisi.png)
+
+- **Dependency suppression:** when `core_1` goes down, the 21 devices behind it become unreachable too. Instead of alarming on all of them, only the root cause (`core_1`) is notified; the rest are treated as symptoms and suppressed. A device is a symptom when all of its upstream links are down, and a root cause when at least one is healthy (in the dual-core hospital, losing `core_1` and `core_2` together gives two root causes with 30 suppressed symptoms each).
+- **Hysteresis:** one failed check does not raise an alarm; it is confirmed after `deneme` (default 3) consecutive failed checks. One-off losses are counted as transient and dropped.
+- **Flapping:** a device whose state changes `esik` (3) or more times within the last `pencere` (10) checks is flapping. A flapping root cause produces a single `DALGALANMA` notification instead of one alarm per up/down swing.
+- **Notification flow:** `ALARM`, `KURTARMA` (recovery), `DALGALANMA` (flapping). In the office, pattern `0111110111` on `core_1` reduces 44 raw alarms to 3 notifications.
+
+![Root-cause view: core_1 down in the office gives 1 root cause and 21 suppressed devices](docs/img/izleme-kok-neden.png)
+
+Confirmed failures (incidents) are stored for the signed-in user as `Ariza` records: device, start, duration, open/closed, root cause or symptom, flapping or not. The `/ariza/` page shows, per device, the incident count, total duration, mean time to repair, and open and flapping counts. By default only root causes are listed; "Belirtileri de göster" (show symptoms) reveals the suppressed devices too.
+
+![Failure history page: incident count, total duration and mean repair time per device](docs/img/ariza-gecmisi.png)
+
+```powershell
+python main.py alarm ofis --bozuk core_1 --desen 0111110111
+python main.py alarm ofis --bozuk core_1 --desen 0111110111 --deneme 2 --pencere 8 --esik 2 --aralik 30
+```
 
 ## Database and admin panel
 
@@ -151,7 +178,9 @@ Read and compute endpoints are public; saving a result, SIEM analysis and histor
 | `/api/senaryolar/<slug>/hata/?bozuk=core_1&bozuk=core_2` | failure simulation | same computation + save to history (login) |
 | `/api/senaryolar/<slug>/izleme/?bozuk=...` | monitoring states | same + save (login) |
 | `/api/senaryolar/<slug>/erisim/` | VLAN matrix; end-to-end query with `?kaynak=&hedef=&port=` | query + save (login) |
+| `/api/senaryolar/<slug>/zaman/?bozuk=core_1&desen=0111110111` | alarm flow (`deneme`, `pencere`, `esik`, `aralik`) | same + save (login); confirmed incidents become `Ariza` |
 | `/api/siem/` | | `{"log": "..."}` analyse + save (login) |
+| `/api/ariza/`, `/api/ariza/ozet/` | your own incidents (`?senaryo=`, `?cihaz=`, `?acik=1`, `?belirti=1`) and a per-device summary | |
 | `/api/gecmis/`, `/api/gecmis/<id>/` | your own records (`?tur=hata`) | DELETE to remove |
 
 An unknown device name or an invalid port returns `400`; an unknown scenario returns `404`.
@@ -175,7 +204,8 @@ python main.py hata hastane --bozuk core_1,core_2    # try several failures at o
 python main.py erisim universite                     # VLAN matrix
 python main.py erisim universite --sorgu ogrenci_cihazi ogrenci_isleri_db 3306
 python main.py siem ornek_loglar/saldirili.log
-python main.py izleme ofis --bozuk core_1
+python main.py izleme ofis --bozuk core_1            # root cause and suppressed symptoms
+python main.py alarm ofis --bozuk core_1 --desen 0111110111   # alarm flow over time
 python main.py diyagram > docs/topolojiler.md        # Mermaid diagrams
 python main.py log-uret                              # regenerate sample logs
 ```
@@ -329,6 +359,18 @@ The `VERI_SIZINTISI` (data leak) alarm combines different log types (`AUTH` and 
 
 The monitoring node (`zabbix`) tries to reach every device. States: `UP`, `ARIZALI` (failed), `GÜÇSÜZ` (no power), `ULAŞILAMIYOR` (unreachable), `İZLEME KAPALI` (monitoring down). `tcp_kontrol(host, port)` also tries a real TCP connection (TCP is used because ping needs administrator rights).
 
+### 8. Alarm management
+
+Element states come from `mini_izleme`; `alarm_yonetimi` adds time and relationships on top.
+
+1. **Upstream nodes.** A BFS from the monitoring node gives every device a level. A device's upstream is its neighbours one level closer that can carry transit traffic (router, firewall, core, switch, ap, hat).
+2. **Root cause.** A device that is not `UP` is a root cause if it has no upstream, or at least one upstream is `UP` (`kok_mu = not upstream or any(upstream healthy)`). If all its upstreams are down too it is a symptom and gets suppressed.
+3. **Hysteresis.** A consecutive-failure counter is kept per device; the incident is confirmed when it reaches `deneme`.
+4. **Flapping.** 0/1 transitions are counted over the last `pencere` checks; reaching `esik` marks the device as flapping.
+5. **Incident record.** Each incident has a start, an end and a duration (`sure * aralik_sn`); with no end the failure is still open.
+
+Time is a check count, not wall-clock time; the seconds equivalent is given by `aralik_sn`.
+
 ## Findings
 
 Results when everything is failed one at a time in the four scenarios:
@@ -354,6 +396,7 @@ On the power side: if you build the office with `ofis(jenerator=False)` (no gene
 - Server redundancy is only measured where a requirement lists several targets (a cluster, such as HBYS/PACS in the hospital). If a single-target server (such as `veritabani` in e-commerce) fails, it is not reported as a design flaw.
 - The power model is "any one source is enough"; there is no time dimension such as UPS runtime or ATS delay.
 - VLAN policy works at zone level; there are no per-device rules.
+- In alarm management time is a check count, not wall-clock time; the failure pattern is typed in, nothing is measured from a real network. The root cause is found from topological proximity; routing protocols are not modelled.
 - SIEM thresholds are sample values and must be tuned to the traffic of a real network.
 - The web interface and API are for local use: `SECRET_KEY` is a development key, anyone can sign up, HTTP Basic credentials are sent unencrypted and there is no rate limiting. In any other environment, set `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=0` and `ALLOWED_HOSTS`, and run behind HTTPS.
 - The command line uses the four code-defined scenarios, not the ones in the database; edits made in the admin panel do not show up there.
@@ -367,12 +410,13 @@ ag_motoru/                 simulation engine, independent of Django
   erisim_matrisi.py        VLAN matrix, end-to-end query
   mini_siem.py             log parsing, correlation, alarms
   mini_izleme.py           monitoring state, TCP check
+  alarm_yonetimi.py        root-cause suppression, hysteresis, flapping, incidents
   mermaid_uret.py          Mermaid diagram from the graph
   ornek_log_uret.py        sample log generator
 requirements-postgres.txt  PostgreSQL driver (optional)
 docker-compose.yml         local PostgreSQL
 simulasyon/                Django app
-  models.py                scenario, device, cable, requirement, rule, denial, simulation history
+  models.py                scenario, device, cable, requirement, rule, denial, simulation history, failure records
   yukle.py                 database <-> engine conversion
   servis.py                computation and saving to history (shared by web and API)
   views.py, urls.py        web pages, login/sign-up, history
@@ -391,8 +435,8 @@ main.py                    command-line interface
 ## Tests
 
 ```powershell
-python -m pytest -q          # engine: 60 tests
-python manage.py test        # web, admin, API, accounts and database: 106 tests
+python -m pytest -q          # engine: 104 tests
+python manage.py test        # web, admin, API, accounts and database: 142 tests
 ```
 
 The tests also verify architectural expectations such as "no central single point of failure in the redundant scenarios", "it breaks when both cores fail", "cable path exists but the policy blocks it" and "no transit through servers".
