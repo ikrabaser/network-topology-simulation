@@ -67,6 +67,9 @@ class _KayitliHesap(APIView):
     def ozet_metni(self, sonuc):
         raise NotImplementedError
 
+    def kaydet(self, kullanici, obj, girdi, sonuc):
+        return servis.kaydet(kullanici, obj, self.tur, girdi, sonuc, self.ozet_metni(sonuc))
+
     def calistir(self, request, slug, veri, kaydet):
         obj, es = _senaryo(slug)
         if not hasattr(veri, "get"):
@@ -79,7 +82,7 @@ class _KayitliHesap(APIView):
         if kaydet:
             if not request.user.is_authenticated:
                 raise NotAuthenticated()
-            k = servis.kaydet(request.user, obj, self.tur, girdi, sonuc, self.ozet_metni(sonuc))
+            k = self.kaydet(request.user, obj, girdi, sonuc)
             return Response({**sonuc, "kayit_id": k.pk}, status=201)
         return Response(sonuc)
 
@@ -128,6 +131,26 @@ class Izleme(_KayitliHesap):
 
     def ozet_metni(self, sonuc):
         return servis.izleme_ozeti(sonuc)
+
+
+class Zaman(_KayitliHesap):
+    """Alarm akışı: bozulup onarılan elemanlar, 0/1 deseni; kök neden, histerezis ve dalgalanma."""
+    tur = models.Simulasyon.ZAMAN
+
+    def girdi(self, es, veri):
+        desen = veri.get("desen")
+        if not isinstance(desen, str):
+            raise servis.GirdiHatasi("'desen' 0 ve 1'lerden oluşan bir metin olmalı (örn. 0111010111).")
+        return servis.zaman_girdisi(es, _liste(veri, "bozuk"), desen, veri, katı=True)
+
+    def hesapla(self, es, girdi):
+        return servis.zaman(es, girdi)
+
+    def ozet_metni(self, sonuc):
+        return servis.zaman_ozeti(sonuc)
+
+    def kaydet(self, kullanici, obj, girdi, sonuc):
+        return servis.kaydet_zaman(kullanici, obj, girdi, sonuc)
 
 
 class Erisim(_KayitliHesap):
@@ -198,10 +221,55 @@ class GecmisDetay(RetrieveDestroyAPIView):
         return models.Simulasyon.objects.filter(kullanici=self.request.user).select_related("senaryo")
 
 
+class ArizaSerializer(serializers.ModelSerializer):
+    senaryo = serializers.SlugRelatedField(slug_field="slug", read_only=True)
+
+    class Meta:
+        model = models.Ariza
+        fields = ["id", "senaryo", "cihaz", "baslangic", "bitis", "sure", "sure_sn", "acik",
+                  "kok_neden", "dalgali", "zaman", "simulasyon"]
+
+
+def _ariza_sorgusu(request):
+    q = models.Ariza.objects.filter(kullanici=request.user).select_related("senaryo")
+    p = request.query_params
+    if p.get("senaryo"):
+        q = q.filter(senaryo__slug=p["senaryo"])
+    if p.get("cihaz"):
+        q = q.filter(cihaz=p["cihaz"])
+    if p.get("acik") == "1":
+        q = q.filter(acik=True)
+    if p.get("belirti") != "1":
+        q = q.filter(kok_neden=True)
+    return q
+
+
+class ArizaListesi(ListAPIView):
+    """Kendi arıza olayların; varsayılan olarak sadece kök nedenler (?belirti=1 hepsini getirir)."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = ArizaSerializer
+
+    def get_queryset(self):
+        return _ariza_sorgusu(self.request)
+
+
+class ArizaOzeti(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        senaryo = None
+        if request.query_params.get("senaryo"):
+            senaryo = models.Senaryo.objects.filter(slug=request.query_params["senaryo"]).first()
+            if senaryo is None:
+                raise Http404("Senaryo bulunamadı")
+        return Response(servis.ariza_ozeti(request.user, senaryo, request.query_params.get("belirti") == "1"))
+
+
 @api_view(["GET"])
 def kok(request):
     return Response({
         "senaryolar": request.build_absolute_uri("/api/senaryolar/"),
         "gecmis": request.build_absolute_uri("/api/gecmis/"),
+        "ariza": request.build_absolute_uri("/api/ariza/"),
         "siem": request.build_absolute_uri("/api/siem/"),
     })

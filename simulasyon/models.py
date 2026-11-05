@@ -231,8 +231,9 @@ class Engel(models.Model):
 
 class Simulasyon(models.Model):
     """Bir kullanıcının çalıştırıp kaydettiği simülasyon."""
-    HATA, IZLEME, ERISIM, SIEM = "hata", "izleme", "erisim", "siem"
-    TURLER = [(HATA, "Hata simülasyonu"), (IZLEME, "İzleme"), (ERISIM, "Erişim sorgusu"), (SIEM, "SIEM analizi")]
+    HATA, IZLEME, ERISIM, SIEM, ZAMAN = "hata", "izleme", "erisim", "siem", "zaman"
+    TURLER = [(HATA, "Hata simülasyonu"), (IZLEME, "İzleme"), (ERISIM, "Erişim sorgusu"),
+              (SIEM, "SIEM analizi"), (ZAMAN, "Alarm akışı")]
 
     kullanici = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="simulasyonlar")
     senaryo = models.ForeignKey(Senaryo, on_delete=models.CASCADE, null=True, blank=True,
@@ -250,3 +251,30 @@ class Simulasyon(models.Model):
 
     def __str__(self):
         return f"{self.get_tur_display()}: {self.ozet}"
+
+
+class Ariza(models.Model):
+    """Kaydedilen bir alarm akışı çalıştırmasında onaylanan arıza olayı (histerezisi geçen)."""
+    simulasyon = models.ForeignKey(Simulasyon, on_delete=models.CASCADE, related_name="arizalar")
+    kullanici = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="arizalar")
+    senaryo = models.ForeignKey(Senaryo, on_delete=models.CASCADE, related_name="arizalar")
+    cihaz = models.CharField("cihaz", max_length=40)
+    baslangic = models.PositiveIntegerField("başlangıç kontrolü")
+    bitis = models.PositiveIntegerField("onarım kontrolü", null=True, blank=True,
+                                        help_text="Boşsa kayıt sonunda hâlâ arızalıydı.")
+    sure = models.PositiveIntegerField("süre (kontrol)")
+    sure_sn = models.PositiveIntegerField("süre (saniye)")
+    acik = models.BooleanField("açık", default=False)
+    kok_neden = models.BooleanField("kök neden", default=False,
+                                    help_text="Değilse başka bir cihazın arızasının belirtisidir (alarmı bastırılır).")
+    dalgali = models.BooleanField("dalgalı", default=False)
+    zaman = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-zaman", "-id"]
+        verbose_name = "arıza kaydı"
+        verbose_name_plural = "arıza kayıtları"
+        indexes = [models.Index(fields=["kullanici", "senaryo", "cihaz"])]
+
+    def __str__(self):
+        return f"{self.cihaz}: {self.sure} kontrol"

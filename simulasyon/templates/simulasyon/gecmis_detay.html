@@ -24,6 +24,9 @@
     <tr><th>Politika izni</th><td>{% if sonuc.politika_izni %}<span class="iyi">VAR</span>{% else %}<span class="kotu">YOK</span>{% endif %}</td></tr>
     <tr><th>Sonuç</th><td>{% if sonuc.sonuc %}<strong class="iyi">İZİN</strong>{% else %}<strong class="kotu">ENGEL</strong>{% endif %}</td></tr>
   </table>
+{% elif k.tur == "zaman" %}
+  <p>Bozulup onarılan: <code>{{ girdi.bozuk|join:", " }}</code> · desen <code>{{ girdi.desen }}</code></p>
+  {% include "simulasyon/_zaman_sonuc.html" %}
 {% elif k.tur == "siem" %}
   <p>Kaynak: {{ sonuc.kaynak }} · {{ sonuc.olay }} olay{% if sonuc.hatali %}, {{ sonuc.hatali }} satır okunamadı{% endif %}</p>
   {% if sonuc.alarmlar %}

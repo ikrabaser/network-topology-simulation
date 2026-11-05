@@ -1,0 +1,37 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}Alarm akışı: {{ s.baslik }}{% endblock %}
+{% block icerik %}
+<h1>{{ s.baslik }}</h1>
+{% include "simulasyon/_sekmeler.html" %}
+<p class="soluk">Seçtiğiniz elemanlar zaman içinde bozulup onarılır; her kontrolde izleme sistemi ne görür ve kime ne bildirir? Üç mekanizma çalışır:
+<strong>kök neden bastırma</strong> (düşen cihazın arkasındakilerin alarmı gönderilmez),
+<strong>histerezis</strong> (alarm için üst üste birkaç başarısız kontrol gerekir),
+<strong>dalgalanma</strong> (sürekli açılıp kapanan cihaz için tek bildirim).</p>
+<form method="get" class="kart">
+  <h2 style="margin-top:0">Neyi bozalım?</h2>
+  <div class="secici">
+    {% for e in secici %}
+      <label><input type="checkbox" name="bozuk" value="{{ e.ad }}" {% if e.secili %}checked{% endif %}>
+        {{ e.etiket }} <span class="soluk">({{ e.ad }})</span></label>
+    {% endfor %}
+  </div>
+  <h2>Kontrol deseni</h2>
+  <p><input type="text" name="desen" value="{{ desen }}" placeholder="0111010111" pattern="[01]{2,120}" size="40" style="font-family:ui-monospace,Consolas,monospace">
+     <span class="not">1 = eleman bozuk, 0 = sağlam; her karakter bir kontrol (en fazla 120)</span></p>
+  <p class="not">Örnek desenler:
+    {% for ad, d in ornekler %}<a href="?{% for b in bozuk %}bozuk={{ b }}&amp;{% endfor %}desen={{ d }}">{{ ad }}</a> <code>{{ d }}</code>{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+  <p>
+    Alarm için üst üste <input type="number" name="deneme" value="{{ ayar.deneme }}" min="1" max="10" style="width:4.5em"> başarısız kontrol ·
+    dalgalanma: son <input type="number" name="pencere" value="{{ ayar.pencere }}" min="3" max="120" style="width:4.5em"> kontrolde
+    en az <input type="number" name="esik" value="{{ ayar.esik }}" min="2" max="120" style="width:4.5em"> değişiklik ·
+    kontrol aralığı <input type="number" name="aralik" value="{{ ayar.aralik }}" min="1" max="86400" style="width:5.5em"> sn
+  </p>
+  <p><button type="submit">Çalıştır</button> <a href="?">Temizle</a></p>
+</form>
+{% if hata_mesaji %}<p class="kotu">{{ hata_mesaji }}</p>{% endif %}
+{% if sonuc %}
+  <h2>Sonuç</h2>
+  {% include "simulasyon/_zaman_sonuc.html" %}
+  {% include "simulasyon/_kaydet.html" with tur="zaman" %}
+{% endif %}
+{% endblock %}

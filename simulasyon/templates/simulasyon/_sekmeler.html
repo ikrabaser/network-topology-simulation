@@ -3,4 +3,5 @@
   <a href="{% url 'hata' s.slug %}" class="{% if sayfa == 'hata' %}aktif{% endif %}">Hata simülasyonu</a>
   <a href="{% url 'erisim' s.slug %}" class="{% if sayfa == 'erisim' %}aktif{% endif %}">VLAN erişim matrisi</a>
   <a href="{% url 'izleme' s.slug %}" class="{% if sayfa == 'izleme' %}aktif{% endif %}">İzleme</a>
+  <a href="{% url 'zaman' s.slug %}" class="{% if sayfa == 'zaman' %}aktif{% endif %}">Alarm akışı</a>
 </div>

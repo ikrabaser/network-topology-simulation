@@ -1,0 +1,54 @@
+{% with o=sonuc.ozet %}
+<p>
+  <span class="rozet soluk">{{ o.ham_alarm }} ham alarm</span> →
+  <span class="rozet uyari">{{ o.onayli_alarm }} onaylı</span> →
+  <span class="rozet {% if o.bildirim %}kotu{% else %}iyi{% endif %}">{{ o.bildirim }} bildirim</span>
+</p>
+<ul class="not">
+  <li>{{ o.gecici }} geçici kayıp: {{ sonuc.ayar.deneme }} kontrol üst üste başarısız olmadığı için alarm sayılmadı (histerezis).</li>
+  <li>{{ o.kok_bastirilan }} bildirim kök nedene indirgendi: arkasında kalan cihazların alarmları bastırıldı.</li>
+  <li>{{ o.dalgalanma_bastirilan }} alarm dalgalanma nedeniyle bastırıldı; {{ o.dalgali_cihaz }} cihaz dalgalanıyor.</li>
+</ul>
+{% endwith %}
+
+<h2>Kontroller</h2>
+<div class="sirit" aria-label="Kontrol sırası">
+  {% for a in sonuc.adimlar %}<span class="{% if a.bozuk %}bozuk{% endif %}"
+    title="Kontrol {{ a.n }}: {{ a.up }}/{{ a.toplam }} UP{% if a.kokler %}, kök neden: {{ a.kokler|join:', ' }}{% endif %}"></span>{% endfor %}
+</div>
+<p class="not">Kırmızı: eleman bozuk ({{ sonuc.adimlar|length }} kontrol, ardışık kontroller arası {{ sonuc.ayar.aralik_sn }} sn). Üzerine gelince o kontroldeki durum görünür.</p>
+
+<h2>Bildirimler</h2>
+{% if sonuc.bildirimler %}
+<table><tr><th>Kontrol</th><th>Tür</th><th>Cihaz</th><th>Açıklama</th></tr>
+{% for b in sonuc.bildirimler %}
+  <tr><td>{{ b.adim }}</td>
+  <td><span class="rozet {% if b.tur == 'ALARM' %}kotu{% elif b.tur == 'KURTARMA' %}iyi{% else %}uyari{% endif %}">{{ b.tur }}</span></td>
+  <td><code>{{ b.cihaz }}</code></td><td>{{ b.aciklama }}</td></tr>
+{% endfor %}</table>
+{% else %}<p><span class="rozet iyi">Bildirim yok</span> <span class="not">Kesintiler onay eşiğini geçmedi ya da izleme düğümü körleştiği için ayırt edilemedi.</span></p>{% endif %}
+
+<h2>Cihazlar</h2>
+{% if sonuc.cihazlar %}
+<table><tr><th>Cihaz</th><th>Ad</th><th>Durum değişikliği</th><th>Ham alarm</th><th>Onaylı</th><th>Dalgalı</th><th>Kullanılabilirlik</th></tr>
+{% for c in sonuc.cihazlar %}
+  <tr><td><code>{{ c.ad }}</code></td><td>{{ c.etiket }}</td><td>{{ c.gecis }}</td><td>{{ c.ham_alarm }}</td><td>{{ c.onayli_alarm }}</td>
+  <td>{% if c.dalgali %}<span class="rozet uyari">evet</span>{% else %}-{% endif %}</td><td>%{{ c.kullanilabilirlik }}</td></tr>
+{% endfor %}</table>
+{% else %}<p class="soluk">Hiçbir cihaz UP dışına çıkmadı.</p>{% endif %}
+
+<h2>Arıza olayları</h2>
+{% if sonuc.olaylar %}
+<p class="not">Üst üste başarısız kontrol dizileri. Onaylı olaylar kayıt sırasında arıza geçmişine yazılır.</p>
+<table><tr><th>Cihaz</th><th>Başlangıç</th><th>Onarım</th><th>Süre</th><th>Durum</th></tr>
+{% for o in sonuc.olaylar|slice:":60" %}
+  <tr><td><code>{{ o.cihaz }}</code></td><td>kontrol {{ o.baslangic }}</td>
+  <td>{% if o.acik %}açık{% else %}kontrol {{ o.bitis }}{% endif %}</td>
+  <td>{{ o.sure }} kontrol ({{ o.sure_sn }} sn)</td>
+  <td>{% if not o.onayli %}<span class="rozet soluk">geçici</span>
+      {% elif o.kok_neden %}<span class="rozet kotu">kök neden</span>
+      {% else %}<span class="rozet soluk">belirti (bastırıldı)</span>{% endif %}
+      {% if o.dalgali %}<span class="rozet uyari">dalgalı</span>{% endif %}</td></tr>
+{% endfor %}</table>
+{% if sonuc.olaylar|length > 60 %}<p class="not">İlk 60 olay gösteriliyor ({{ sonuc.olaylar|length }} olay var).</p>{% endif %}
+{% else %}<p class="soluk">Olay yok.</p>{% endif %}

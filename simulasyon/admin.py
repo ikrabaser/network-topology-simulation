@@ -123,3 +123,14 @@ class SimulasyonAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(models.Ariza)
+class ArizaAdmin(admin.ModelAdmin):
+    list_display = ("zaman", "kullanici", "senaryo", "cihaz", "sure_sn", "acik", "kok_neden", "dalgali")
+    list_filter = ("senaryo", "kok_neden", "acik", "dalgali")
+    search_fields = ("cihaz", "kullanici__username")
+    readonly_fields = [f.name for f in models.Ariza._meta.fields]
+
+    def has_add_permission(self, request):
+        return False

@@ -50,12 +50,16 @@
     textarea { width:100%; min-height:160px; font-family:ui-monospace, Consolas, monospace; font-size:.85rem; }
     code, pre { font-family:ui-monospace, Consolas, monospace; font-size:.88rem; }
     .not { font-size:.9rem; color:var(--soluk); }
+    .sirit { display:flex; flex-wrap:wrap; gap:2px; margin:6px 0; }
+    .sirit span { width:16px; height:26px; border-radius:3px; background:var(--iyi); opacity:.85; }
+    .sirit span.bozuk { background:var(--kotu); }
+    .sirit span.zayif { background:var(--uyari); }
   </style>
 </head>
 <body>
   <header>
     <a class="marka" href="{% url 'index' %}">Ağ Topolojisi Simülasyonu</a>
-    <nav><a href="{% url 'index' %}">Senaryolar</a><a href="{% url 'siem' %}">Mini SIEM</a>{% if user.is_authenticated %}<a href="{% url 'gecmis' %}">Geçmişim</a>{% endif %}{% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}</nav>
+    <nav><a href="{% url 'index' %}">Senaryolar</a><a href="{% url 'siem' %}">Mini SIEM</a>{% if user.is_authenticated %}<a href="{% url 'gecmis' %}">Geçmişim</a><a href="{% url 'ariza' %}">Arıza geçmişi</a>{% endif %}{% if user.is_staff %}<a href="/admin/">Admin</a>{% endif %}</nav>
     <div class="hesap">
     {% if user.is_authenticated %}
       <span class="soluk">{{ user.get_username }}</span>

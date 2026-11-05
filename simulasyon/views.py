@@ -84,6 +84,25 @@ def izleme(request, slug):
     })
 
 
+def zaman(request, slug):
+    obj, es = _senaryo(slug)
+    bozuk = servis.bozuklari_ayikla(es, request.GET.getlist("bozuk"))
+    desen = request.GET.get("desen", "").strip()
+    ayar = {k: request.GET.get(k, "").strip() or v for k, v in servis.VARSAYILAN_AYAR.items()}
+    sonuc = hata_mesaji = None
+    if desen or "bozuk" in request.GET:
+        try:
+            girdi = servis.zaman_girdisi(es, bozuk, desen, request.GET)
+            sonuc = servis.zaman(es, girdi)
+            ayar = {k: girdi[k] for k in servis.VARSAYILAN_AYAR}
+        except servis.GirdiHatasi as e:
+            hata_mesaji = str(e)
+    return render(request, "simulasyon/zaman.html", {
+        "s": obj, "sayfa": "zaman", "secici": _secici(es, bozuk), "bozuk": bozuk, "desen": desen,
+        "ayar": ayar, "sonuc": sonuc, "hata_mesaji": hata_mesaji, "ornekler": servis.ORNEK_DESENLER,
+    })
+
+
 @login_required
 @require_POST
 def kaydet(request, slug, tur):
@@ -109,6 +128,14 @@ def kaydet(request, slug, tur):
             messages.error(request, str(e))
             return redirect("erisim", slug=slug)
         k = servis.kaydet(request.user, obj, tur, girdi, sonuc, servis.erisim_ozeti(sonuc))
+    elif tur == models.Simulasyon.ZAMAN:
+        try:
+            girdi = servis.zaman_girdisi(es, request.POST.getlist("bozuk"), request.POST.get("desen"), request.POST)
+            sonuc = servis.zaman(es, girdi)
+        except servis.GirdiHatasi as e:
+            messages.error(request, str(e))
+            return redirect("zaman", slug=slug)
+        k = servis.kaydet_zaman(request.user, obj, girdi, sonuc)
     else:
         raise Http404("Bilinmeyen simülasyon türü")
     messages.success(request, "Geçmişe kaydedildi.")
@@ -175,6 +202,24 @@ def gecmis(request):
     sayfa = Paginator(kayitlar, 20).get_page(request.GET.get("sayfa"))
     return render(request, "simulasyon/gecmis.html", {
         "sayfa_nesnesi": sayfa, "turler": models.Simulasyon.TURLER, "tur": tur})
+
+
+@login_required
+def ariza(request):
+    senaryo_slug = request.GET.get("senaryo", "")
+    belirtiler = request.GET.get("belirti") == "1"
+    senaryo = models.Senaryo.objects.filter(slug=senaryo_slug).first() if senaryo_slug else None
+    kayitlar = models.Ariza.objects.filter(kullanici=request.user).select_related("senaryo")
+    if senaryo:
+        kayitlar = kayitlar.filter(senaryo=senaryo)
+    if not belirtiler:
+        kayitlar = kayitlar.filter(kok_neden=True)
+    return render(request, "simulasyon/ariza.html", {
+        "ozet": servis.ariza_ozeti(request.user, senaryo, belirtiler),
+        "sayfa_nesnesi": Paginator(kayitlar, 25).get_page(request.GET.get("sayfa")),
+        "senaryolar": models.Senaryo.objects.filter(arizalar__kullanici=request.user).distinct(),
+        "senaryo": senaryo, "belirtiler": belirtiler,
+    })
 
 
 @login_required

@@ -8,10 +8,20 @@ onların arkasında kalıp ulaşılamayan cihazlar alarm üretir.</p>
 <h2>Neyi bozalım?</h2>
 {% include "simulasyon/_secici.html" %}
 <h2>Durum: {{ up }}/{{ toplam }} cihaz UP</h2>
-<table><tr><th>Cihaz</th><th>Ad</th><th>Durum</th></tr>
+{% if kok_neden.izleme_kapali %}
+  <p><span class="rozet kotu">İzleme düğümü kapalı</span> Hiçbir cihaz ayırt edilemez, alarm üretilemez.</p>
+{% elif kok_neden.kokler %}
+  <p><span class="rozet kotu">{{ kok_neden.kokler|length }} kök neden</span>
+     <span class="rozet soluk">{{ kok_neden.bastirilan }} alarm bastırıldı</span>
+     <span class="not">Bir cihazın arkasında kalıp ulaşılamayan cihazların alarmı gönderilmez; sadece kök neden bildirilir.</span></p>
+{% endif %}
+<table><tr><th>Cihaz</th><th>Ad</th><th>Durum</th><th>Alarm</th></tr>
 {% for d in durumlar %}
   <tr><td><code>{{ d.ad }}</code></td><td>{{ d.etiket }}</td>
-  <td>{% if d.ok %}<span class="rozet iyi">UP</span>{% else %}<span class="rozet kotu">{{ d.durum }}</span>{% endif %}</td></tr>
+  <td>{% if d.ok %}<span class="rozet iyi">UP</span>{% else %}<span class="rozet kotu">{{ d.durum }}</span>{% endif %}</td>
+  <td>{% if d.alarm == "kok" %}<span class="rozet kotu">kök neden</span>
+      {% elif d.alarm == "bastirilan" %}<span class="rozet soluk">bastırıldı</span> <span class="not">{{ d.koker|join:", " }} arkasında</span>
+      {% else %}-{% endif %}</td></tr>
 {% endfor %}
 </table>
 {% include "simulasyon/_kaydet.html" with tur="izleme" %}

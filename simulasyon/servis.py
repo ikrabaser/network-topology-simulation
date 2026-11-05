@@ -6,7 +6,11 @@ buradaki hesaplamanın çıktısıdır.
 """
 from __future__ import annotations
 
-from ag_motoru import erisim_matrisi, hata_simulasyonu, mermaid_uret, mini_izleme, mini_siem
+from django.db import transaction
+from django.db.models import Avg, Count, Max, Q, Sum
+
+from ag_motoru import (alarm_yonetimi, erisim_matrisi, hata_simulasyonu, mermaid_uret,
+                       mini_izleme, mini_siem)
 
 from . import models
 from .yukle import senaryo_yukle
@@ -91,15 +95,103 @@ def hata_ozeti(s: dict) -> str:
 
 def izleme(es, bozuk) -> dict:
     durumlar = mini_izleme.ag_izleme(es, bozuk)
+    kok = alarm_yonetimi.kok_neden(es, durumlar)
     up = sum(1 for d in durumlar.values() if d == mini_izleme.UP)
+
+    def rol(n):
+        if n in kok["kokler"]:
+            return "kok"
+        return "bastirilan" if n in kok["bastirilan"] else ""
+
     return {"bozuk": list(bozuk), "izleyici": es.izleme_dugumu, "up": up, "toplam": len(durumlar),
             "durumlar": [{"ad": n, "etiket": es.graf.nodes[n]["etiket"], "durum": d,
-                          "ok": d == mini_izleme.UP} for n, d in durumlar.items()],
-            "alarmlar": mini_izleme.alarmlar(durumlar)}
+                          "ok": d == mini_izleme.UP, "alarm": rol(n),
+                          "koker": kok["bastirilan"].get(n, [])} for n, d in durumlar.items()],
+            "alarmlar": mini_izleme.alarmlar(durumlar),
+            "kok_neden": {"kokler": kok["kokler"], "bastirilan": len(kok["bastirilan"]),
+                          "izleme_kapali": kok["izleme_kapali"]}}
 
 
 def izleme_ozeti(s: dict) -> str:
     return f"{s['up']}/{s['toplam']} cihaz UP" + (f" ({', '.join(s['bozuk'])} bozuk)" if s["bozuk"] else "")
+
+
+# ---- alarm akışı (zaman çizelgesi) ---------------------------------------------------------
+
+VARSAYILAN_AYAR = {"deneme": 3, "pencere": 10, "esik": 3, "aralik": 60}
+ORNEK_DESENLER = [("Kısa kesinti", "0110000000"), ("Uzun kesinti", "0011111000"),
+                  ("Dalgalanma", "0101010101"), ("Kesinti sonra dalgalanma", "0111110111")]
+
+
+def _tam_sayi(deger, ad, varsayilan):
+    if deger is None or str(deger).strip() == "":
+        return varsayilan
+    if isinstance(deger, bool) or not str(deger).strip().lstrip("-").isdigit():
+        raise GirdiHatasi(f"{ad} bir tam sayı olmalı.")
+    return int(str(deger).strip())
+
+
+def zaman_girdisi(es, bozuk, desen, ayar, katı: bool = False) -> dict:
+    """Formdan/API'den gelen değerleri doğrulayıp temiz bir girdi sözlüğü üretir."""
+    bozuk = bozuklari_ayikla(es, bozuk, katı=katı)
+    if not bozuk:
+        raise GirdiHatasi("Bozulup onarılacak en az bir eleman seçin.")
+    desen = (desen or "").strip()
+    try:
+        alarm_yonetimi.desen_coz(desen)
+    except ValueError as e:
+        raise GirdiHatasi(str(e))
+    girdi = {"bozuk": bozuk, "desen": desen}
+    for ad, varsayilan in VARSAYILAN_AYAR.items():
+        girdi[ad] = _tam_sayi(ayar.get(ad), ad, varsayilan)
+    return girdi
+
+
+def zaman(es, girdi: dict) -> dict:
+    try:
+        return alarm_yonetimi.seri_analizi(
+            es, girdi["bozuk"], girdi["desen"], deneme=girdi["deneme"], pencere=girdi["pencere"],
+            esik=girdi["esik"], aralik_sn=girdi["aralik"])
+    except ValueError as e:
+        raise GirdiHatasi(str(e))
+
+
+def zaman_ozeti(s: dict) -> str:
+    o = s["ozet"]
+    return (f"{', '.join(s['bozuk'])}: {o['adim']} kontrol, {o['ham_alarm']} ham alarm, "
+            f"{o['bildirim']} bildirim")
+
+
+@transaction.atomic
+def kaydet_zaman(kullanici, obj, girdi: dict, sonuc: dict) -> models.Simulasyon:
+    """Çalıştırmayı kaydeder; onaylanan arıza olaylarını ayrıca sorgulanabilir kayıt olarak yazar."""
+    k = kaydet(kullanici, obj, models.Simulasyon.ZAMAN, girdi, sonuc, zaman_ozeti(sonuc))
+    models.Ariza.objects.bulk_create([
+        models.Ariza(simulasyon=k, kullanici=kullanici, senaryo=obj, cihaz=o["cihaz"],
+                     baslangic=o["baslangic"], bitis=o["bitis"], sure=o["sure"], sure_sn=o["sure_sn"],
+                     acik=o["acik"], kok_neden=bool(o["kok_neden"]), dalgali=o["dalgali"])
+        for o in sonuc["olaylar"] if o["onayli"]])
+    return k
+
+
+def ariza_ozeti(kullanici, senaryo=None, belirtiler: bool = False) -> dict:
+    """Kullanıcının kayıtlı arıza olaylarının özeti: cihaz başına sayı, toplam süre, ortalama onarım."""
+    q = models.Ariza.objects.filter(kullanici=kullanici)
+    if senaryo is not None:
+        q = q.filter(senaryo=senaryo)
+    if not belirtiler:
+        q = q.filter(kok_neden=True)
+    satirlar = (q.values("senaryo__slug", "cihaz")
+                .annotate(sayi=Count("id"), toplam_sn=Sum("sure_sn"),
+                          ortalama_onarim_sn=Avg("sure_sn", filter=Q(acik=False)),
+                          dalgali=Count("id", filter=Q(dalgali=True)),
+                          acik=Count("id", filter=Q(acik=True)), son=Max("zaman"))
+                .order_by("-sayi", "-toplam_sn", "cihaz"))
+    liste = [{"senaryo": r["senaryo__slug"], "cihaz": r["cihaz"], "sayi": r["sayi"],
+              "toplam_sn": r["toplam_sn"], "acik": r["acik"], "dalgali": r["dalgali"],
+              "ortalama_onarim_sn": None if r["ortalama_onarim_sn"] is None else round(r["ortalama_onarim_sn"]),
+              "son": r["son"]} for r in satirlar]
+    return {"olay": sum(r["sayi"] for r in liste), "cihaz": len(liste), "cihazlar": liste}
 
 
 # ---- erişim --------------------------------------------------------------------------------

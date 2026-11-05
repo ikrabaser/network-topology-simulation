@@ -1,0 +1,41 @@
+{% extends "simulasyon/base.html" %}
+{% block baslik %}Arıza geçmişi{% endblock %}
+{% block icerik %}
+<h1>Arıza geçmişi</h1>
+<p class="soluk">Kaydettiğiniz alarm akışı çalıştırmalarında onaylanan arızalar (histerezisi geçenler). Varsayılan olarak sadece kök nedenler gösterilir; bir cihazın arızasının belirtisi olan cihazlar gürültü yaratmasın diye gizlenir.</p>
+<p class="sekmeler">
+  <a href="?{% if belirtiler %}belirti=1{% endif %}" class="{% if not senaryo %}aktif{% endif %}">Tüm senaryolar</a>
+  {% for x in senaryolar %}<a href="?senaryo={{ x.slug }}{% if belirtiler %}&belirti=1{% endif %}" class="{% if senaryo == x %}aktif{% endif %}">{{ x.slug }}</a>{% endfor %}
+  {% if belirtiler %}<a href="?{% if senaryo %}senaryo={{ senaryo.slug }}{% endif %}">Belirtileri gizle</a>
+  {% else %}<a href="?{% if senaryo %}senaryo={{ senaryo.slug }}&{% endif %}belirti=1">Belirtileri de göster</a>{% endif %}
+</p>
+{% if ozet.olay %}
+<p><span class="rozet kotu">{{ ozet.olay }} arıza olayı</span> <span class="rozet soluk">{{ ozet.cihaz }} cihaz</span></p>
+<h2>Cihaz başına</h2>
+<table><tr><th>Senaryo</th><th>Cihaz</th><th>Arıza sayısı</th><th>Toplam süre</th><th>Ort. onarım süresi</th><th>Açık</th><th>Dalgalı</th><th>Son</th></tr>
+{% for c in ozet.cihazlar %}
+  <tr><td>{{ c.senaryo }}</td><td><code>{{ c.cihaz }}</code></td><td>{{ c.sayi }}</td><td>{{ c.toplam_sn }} sn</td>
+  <td>{% if c.ortalama_onarim_sn is None %}-{% else %}{{ c.ortalama_onarim_sn }} sn{% endif %}</td>
+  <td>{{ c.acik }}</td><td>{{ c.dalgali }}</td><td>{{ c.son|date:"Y-m-d H:i" }}</td></tr>
+{% endfor %}</table>
+<p class="not">Ortalama onarım süresi yalnızca kayıt sonunda onarılmış olayları sayar.</p>
+
+<h2>Olaylar</h2>
+<table><tr><th>Kayıt zamanı</th><th>Senaryo</th><th>Cihaz</th><th>Başlangıç</th><th>Süre</th><th>Durum</th><th></th></tr>
+{% for a in sayfa_nesnesi %}
+  <tr><td>{{ a.zaman|date:"Y-m-d H:i" }}</td><td>{{ a.senaryo.slug }}</td><td><code>{{ a.cihaz }}</code></td>
+  <td>kontrol {{ a.baslangic }}</td><td>{{ a.sure }} kontrol ({{ a.sure_sn }} sn)</td>
+  <td>{% if a.acik %}<span class="rozet kotu">açık</span>{% else %}<span class="rozet iyi">onarıldı</span>{% endif %}
+      {% if a.kok_neden %}<span class="rozet kotu">kök neden</span>{% else %}<span class="rozet soluk">belirti</span>{% endif %}
+      {% if a.dalgali %}<span class="rozet uyari">dalgalı</span>{% endif %}</td>
+  <td><a href="{% url 'gecmis_detay' a.simulasyon_id %}">çalıştırma</a></td></tr>
+{% endfor %}</table>
+{% if sayfa_nesnesi.has_other_pages %}
+<p>{% if sayfa_nesnesi.has_previous %}<a href="?sayfa={{ sayfa_nesnesi.previous_page_number }}{% if senaryo %}&senaryo={{ senaryo.slug }}{% endif %}{% if belirtiler %}&belirti=1{% endif %}">← önceki</a>{% endif %}
+ Sayfa {{ sayfa_nesnesi.number }}/{{ sayfa_nesnesi.paginator.num_pages }}
+ {% if sayfa_nesnesi.has_next %}<a href="?sayfa={{ sayfa_nesnesi.next_page_number }}{% if senaryo %}&senaryo={{ senaryo.slug }}{% endif %}{% if belirtiler %}&belirti=1{% endif %}">sonraki →</a>{% endif %}</p>
+{% endif %}
+{% else %}
+<p class="soluk">Henüz arıza kaydı yok. Bir senaryonun "Alarm akışı" sekmesinde bir desen çalıştırıp <strong>Geçmişe kaydet</strong> düğmesine basın.</p>
+{% endif %}
+{% endblock %}

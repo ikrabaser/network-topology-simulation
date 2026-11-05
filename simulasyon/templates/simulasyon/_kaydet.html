@@ -2,6 +2,10 @@
 <form method="post" action="{% url 'kaydet' s.slug tur %}" style="margin-top:12px">
   {% csrf_token %}
   {% for b in bozuk %}<input type="hidden" name="bozuk" value="{{ b }}">{% endfor %}
+  {% if tur == "zaman" %}
+    <input type="hidden" name="desen" value="{{ desen }}">
+    {% for ad, deger in ayar.items %}<input type="hidden" name="{{ ad }}" value="{{ deger }}">{% endfor %}
+  {% endif %}
   {% if tur == "erisim" %}
     <input type="hidden" name="kaynak" value="{{ kaynak }}"><input type="hidden" name="hedef" value="{{ hedef }}">
     <input type="hidden" name="port" value="{{ port }}">
