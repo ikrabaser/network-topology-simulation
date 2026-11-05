@@ -1,6 +1,7 @@
 """Django ayarları.
 
-Topoloji, kurallar ve simülasyon geçmişi SQLite veritabanında tutulur (db.sqlite3).
+Topoloji, kurallar ve simülasyon geçmişi veritabanında tutulur: varsayılan SQLite (db.sqlite3),
+POSTGRES_DB ortam değişkeni verilirse PostgreSQL.
 Yerleşik dört senaryo `python manage.py seed_senaryolar` ile veritabanına aktarılır.
 """
 import os
@@ -48,12 +49,26 @@ TEMPLATES = [{
     ]},
 }]
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.environ.get("DJANGO_DB", BASE_DIR / "db.sqlite3"),
+# Varsayılan SQLite'tır (kurulum gerektirmez). POSTGRES_DB tanımlıysa PostgreSQL kullanılır;
+# bağlantı bilgileri ortam değişkenlerinden okunur, kodda parola tutulmaz.
+if os.environ.get("POSTGRES_DB"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ["POSTGRES_DB"],
+            "USER": os.environ.get("POSTGRES_USER", "postgres"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.environ.get("DJANGO_DB", BASE_DIR / "db.sqlite3"),
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

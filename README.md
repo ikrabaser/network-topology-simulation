@@ -70,6 +70,21 @@ python manage.py runserver
 
 Tarayıcıda `http://127.0.0.1:8000` açılır. `seed_senaryolar` var olan senaryoyu değiştirmez (elle yaptığınız düzenlemeler korunur); kodla yazılmış hâline döndürmek için `python manage.py seed_senaryolar ofis --yenile` çalıştırın. Simülasyon geçmişi `--yenile` ile silinmez. Diyagramlar Mermaid ile çizildiği için tarayıcının internete erişebilmesi gerekir (kütüphane CDN'den yüklenir).
 
+### PostgreSQL (isteğe bağlı)
+
+Varsayılan veritabanı SQLite'tır. PostgreSQL kullanmak için sürücüyü kurun ve bağlantı bilgilerini ortam değişkeniyle verin; kodda parola yoktur:
+
+```powershell
+pip install -r requirements-postgres.txt
+$env:POSTGRES_PASSWORD = "..."          # kendi parolanız
+docker compose up -d                    # yerel PostgreSQL (ya da kendi sunucunuz)
+$env:POSTGRES_DB = "ag_simulasyon"; $env:POSTGRES_USER = "ag"
+python manage.py migrate
+python manage.py seed_senaryolar
+```
+
+`POSTGRES_HOST` (varsayılan `localhost`) ve `POSTGRES_PORT` (varsayılan `5432`) de okunur. `POSTGRES_DB` tanımlı değilse SQLite kullanılır. 106 Django testi her iki veritabanında da geçer; PostgreSQL ile çalıştırmak için aynı ortam değişkenlerini verip `python manage.py test` çalıştırın (kullanıcının veritabanı oluşturma yetkisi olmalı).
+
 ## Web arayüzü
 
 | Sayfa | Ne yapar |
@@ -352,6 +367,8 @@ ag_motoru/                 Django'dan bağımsız simülasyon motoru
   mini_izleme.py           izleme durumu, TCP kontrolü
   mermaid_uret.py          graftan Mermaid diyagramı
   ornek_log_uret.py        örnek log üretici
+requirements-postgres.txt  PostgreSQL sürücüsü (isteğe bağlı)
+docker-compose.yml         yerel PostgreSQL
 simulasyon/                Django uygulaması
   models.py                senaryo, cihaz, kablo, gereksinim, kural, engel, simülasyon geçmişi
   yukle.py                 veritabanı <-> motor dönüşümü

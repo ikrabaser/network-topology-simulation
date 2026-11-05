@@ -72,6 +72,21 @@ python manage.py runserver
 
 Open `http://127.0.0.1:8000` in a browser. `seed_senaryolar` does not change a scenario that already exists (your manual edits are kept); to reset one to its code-defined form, run `python manage.py seed_senaryolar ofis --yenile`. `--yenile` does not delete simulation history. Diagrams are drawn with Mermaid, so the browser needs internet access (the library is loaded from a CDN).
 
+### PostgreSQL (optional)
+
+The default database is SQLite. To use PostgreSQL, install the driver and pass the connection details through environment variables; there is no password in the code:
+
+```powershell
+pip install -r requirements-postgres.txt
+$env:POSTGRES_PASSWORD = "..."          # your own password
+docker compose up -d                    # local PostgreSQL (or your own server)
+$env:POSTGRES_DB = "ag_simulasyon"; $env:POSTGRES_USER = "ag"
+python manage.py migrate
+python manage.py seed_senaryolar
+```
+
+`POSTGRES_HOST` (default `localhost`) and `POSTGRES_PORT` (default `5432`) are also read. SQLite is used when `POSTGRES_DB` is not set. The 106 Django tests pass on both databases; to run them on PostgreSQL, set the same environment variables and run `python manage.py test` (the user needs permission to create databases).
+
 ## Web interface
 
 | Page | What it does |
@@ -354,6 +369,8 @@ ag_motoru/                 simulation engine, independent of Django
   mini_izleme.py           monitoring state, TCP check
   mermaid_uret.py          Mermaid diagram from the graph
   ornek_log_uret.py        sample log generator
+requirements-postgres.txt  PostgreSQL driver (optional)
+docker-compose.yml         local PostgreSQL
 simulasyon/                Django app
   models.py                scenario, device, cable, requirement, rule, denial, simulation history
   yukle.py                 database <-> engine conversion
